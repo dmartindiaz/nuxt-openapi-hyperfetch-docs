@@ -1,6 +1,6 @@
 # Guide
 
-Welcome to the Nuxt Generator guide! This comprehensive guide will help you get started with generating type-safe Nuxt composables from OpenAPI specifications.
+Welcome to the Nuxt OpenAPI Hyperfetch guide! This comprehensive guide will help you get started with generating type-safe Nuxt composables from OpenAPI specifications.
 
 ## What You'll Learn
 
@@ -8,7 +8,7 @@ This guide covers everything you need to know about using nuxt-openapi-hyperfetc
 
 ### Getting Started
 
-- **[What is Nuxt Generator?](./what-is-nuxt-openapi-hyperfetch)** - Understand what this tool does and why you should use it
+- **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** - Understand what this tool does and why you should use it
 - **[Getting Started](./getting-started)** - Install and create your first composables
 - **[Core Concepts](./core-concepts)** - Learn the fundamental concepts
 
@@ -42,7 +42,7 @@ echo nuxtServer | npx nxh generate -i swagger.yaml -o ./server/composables
 
 We recommend following this path:
 
-1. Start with **[What is Nuxt Generator?](./what-is-nuxt-openapi-hyperfetch)** to understand the basics
+1. Start with **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** to understand the basics
 2. Follow the **[Getting Started](./getting-started)** guide to install and generate your first composables
 3. Read **[Core Concepts](./core-concepts)** to understand how it works
 4. Learn about **[Generating Composables](./generating-composables)** in detail
@@ -59,6 +59,6 @@ We recommend following this path:
 
 Ready to get started?
 
-- [What is Nuxt Generator? →](./what-is-nuxt-openapi-hyperfetch)
+- [What is Nuxt OpenAPI Hyperfetch? →](./what-is-nuxt-openapi-hyperfetch)
 - [Getting Started →](./getting-started)
 - [Core Concepts →](./core-concepts)

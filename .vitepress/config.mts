@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress';
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: 'Nuxt Generator',
+  title: 'Nuxt OpenAPI Hyperfetch',
   description: 'Generate type-safe Nuxt composables from OpenAPI/Swagger specifications',
   
   head: [

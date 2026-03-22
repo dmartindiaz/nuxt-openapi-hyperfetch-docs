@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: Nuxt Generator
+  name: Nuxt OpenAPI Hyperfetch
   text: Type-Safe API Composables
   tagline: Generate Nuxt 3 composables from OpenAPI/Swagger specifications with full TypeScript support and lifecycle callbacks
   image:
     src: /logo.png
-    alt: Nuxt Generator
+    alt: Nuxt OpenAPI Hyperfetch
   actions:
     - theme: brand
       text: Get Started
@@ -86,13 +86,13 @@ const { data: pet, error, pending } = useFetchGetPetById(
 </template>
 ```
 
-## Why Nuxt Generator?
+## Why Nuxt OpenAPI Hyperfetch?
 
 <div class="vp-doc">
 
 ### Automated API Integration
 
-Stop writing repetitive API integration code. Nuxt Generator automatically creates type-safe composables from your OpenAPI specification.
+Stop writing repetitive API integration code. Nuxt OpenAPI Hyperfetch automatically creates type-safe composables from your OpenAPI specification.
 
 ### Type Safety Everywhere
 
@@ -112,7 +112,7 @@ Used in production applications handling millions of requests. Includes comprehe
 
 <div class="vp-doc">
 
-- **New to Nuxt Generator?** Start with the [Getting Started Guide](/guide/getting-started)
+- **New to Nuxt OpenAPI Hyperfetch?** Start with the [Getting Started Guide](/guide/getting-started)
 - **Want to see examples?** Check out [Practical Examples](/examples/composables/basic/simple-get)
 - **Need API reference?** Browse the [API Documentation](/api/)
 - **Building server routes?** Learn about [BFF Pattern](/server/)

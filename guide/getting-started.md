@@ -1,6 +1,6 @@
 # Getting Started
 
-Get up and running with Nuxt Generator in under 5 minutes.
+Get up and running with Nuxt OpenAPI Hyperfetch in under 5 minutes.
 
 ## Prerequisites
 

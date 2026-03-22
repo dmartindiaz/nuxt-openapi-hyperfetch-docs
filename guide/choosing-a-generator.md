@@ -1,6 +1,6 @@
 # Choosing a Generator
 
-Nuxt Generator supports three generator types. Each has different use cases, advantages, and trade-offs.
+Nuxt OpenAPI Hyperfetch supports three generator types. Each has different use cases, advantages, and trade-offs.
 
 ## Quick Comparison
 

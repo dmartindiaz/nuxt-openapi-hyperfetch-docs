@@ -1,10 +1,10 @@
 # Core Concepts
 
-Understanding these core concepts will help you use Nuxt Generator effectively.
+Understanding these core concepts will help you use Nuxt OpenAPI Hyperfetch effectively.
 
 ## 1. Two-Stage Generation Pattern
 
-Nuxt Generator follows a **two-stage generation pattern** to keep generated code clean and maintainable:
+Nuxt OpenAPI Hyperfetch follows a **two-stage generation pattern** to keep generated code clean and maintainable:
 
 ```mermaid
 graph LR
@@ -105,7 +105,7 @@ The wrapper handles **parameter extraction** and **callback execution**, then de
 
 ## 3. Generator Types
 
-Nuxt Generator supports three different generator types, each suitable for different use cases:
+Nuxt OpenAPI Hyperfetch supports three different generator types, each suitable for different use cases:
 
 ### useFetch Generator
 

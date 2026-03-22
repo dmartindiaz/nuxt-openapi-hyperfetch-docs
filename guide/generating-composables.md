@@ -53,7 +53,7 @@ nxh generate -i swagger.yaml -o ./composables/api -g useFetch
 
 ## Input File Formats
 
-Nuxt Generator supports multiple OpenAPI formats:
+Nuxt OpenAPI Hyperfetch supports multiple OpenAPI formats:
 
 ### YAML (Recommended)
 

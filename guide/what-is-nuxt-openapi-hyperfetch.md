@@ -1,6 +1,6 @@
-# What is Nuxt Generator?
+# What is Nuxt OpenAPI Hyperfetch?
 
-Nuxt Generator is a CLI tool that automatically generates **type-safe Nuxt 3 composables** from OpenAPI/Swagger specifications. It eliminates the need to write repetitive API integration code by creating production-ready composables that work seamlessly with Nuxt's SSR architecture.
+Nuxt OpenAPI Hyperfetch is a CLI tool that automatically generates **type-safe Nuxt 3 composables** from OpenAPI/Swagger specifications. It eliminates the need to write repetitive API integration code by creating production-ready composables that work seamlessly with Nuxt's SSR architecture.
 
 ## The Problem
 
@@ -15,11 +15,11 @@ This is tedious, error-prone, and doesn't scale well as APIs grow.
 
 ## The Solution
 
-Nuxt Generator solves this by:
+Nuxt OpenAPI Hyperfetch solves this by:
 
 ```mermaid
 graph LR
-    A[OpenAPI Spec] --> B[Nuxt Generator]
+    A[OpenAPI Spec] --> B[Nuxt OpenAPI Hyperfetch]
     B --> C[Type-Safe Composables]
     B --> D[TypeScript Types]
     B --> E[Server Routes]
@@ -179,7 +179,7 @@ For an endpoint like this in your OpenAPI spec:
               $ref: '#/components/schemas/Pet'
 ```
 
-Nuxt Generator creates:
+Nuxt OpenAPI Hyperfetch creates:
 
 ```typescript
 // Generated composable
@@ -202,7 +202,7 @@ interface Pet {
 }
 ```
 
-## When to Use Nuxt Generator
+## When to Use Nuxt OpenAPI Hyperfetch
 
 ### ✅ Perfect For
 
