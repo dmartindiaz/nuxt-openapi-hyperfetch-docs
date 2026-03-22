@@ -17,7 +17,6 @@ Learn how to use the generated composables in your Vue components.
 
 - [Success Navigation →](/examples/composables/callbacks/success-navigation) - Navigate after success
 - [Error Toast →](/examples/composables/callbacks/error-toast) - Show error notifications
-- [Loading Spinner →](/examples/composables/callbacks/loading-spinner) - Display loading state
 - [Request Logging →](/examples/composables/callbacks/request-logging) - Log API calls
 
 ### Global Callbacks

@@ -6,7 +6,7 @@ Creating resources with POST requests using generated composables.
 
 ```vue
 <script setup lang="ts">
-import { useCreatePet } from '~/composables/pets'
+import { useFetchCreatePet } from '~/composables/pets'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -18,7 +18,7 @@ const form = reactive({
   status: 'available'
 })
 
-const { execute: createPet, loading, error } = useCreatePet({
+const { execute: createPet, loading, error } = useFetchCreatePet({
   immediate: false,
   onSuccess: (pet) => {
     router.push(`/pets/${pet.id}`)
@@ -71,7 +71,7 @@ const handleSubmit = async () => {
 
 ```vue
 <script setup lang="ts">
-import { useCreatePet } from '~/composables/pets'
+import { useFetchCreatePet } from '~/composables/pets'
 
 const form = reactive({
   name: '',
@@ -121,7 +121,7 @@ const validateForm = (): boolean => {
   return isValid
 }
 
-const { execute: createPet, loading, error } = useCreatePet({
+const { execute: createPet, loading, error } = useFetchCreatePet({
   immediate: false,
   onSuccess: () => {
     // Reset form
@@ -246,7 +246,7 @@ button:disabled {
 
 ```vue
 <script setup lang="ts">
-import { useCreatePet, useUploadPetPhoto } from '~/composables/pets'
+import { useFetchCreatePet, useFetchUploadPetPhoto } from '~/composables/pets'
 
 const form = reactive({
   name: '',
@@ -262,14 +262,14 @@ const {
   execute: createPet, 
   loading: creating, 
   error: createError 
-} = useCreatePet({ immediate: false })
+} = useFetchCreatePet({ immediate: false })
 
 // Upload photo
 const { 
   execute: uploadPhoto, 
   loading: uploading,
   error: uploadError 
-} = useUploadPetPhoto({ immediate: false })
+} = useFetchUploadPetPhoto({ immediate: false })
 
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -362,7 +362,7 @@ const error = computed(() => createError.value || uploadError.value)
 
 ```vue
 <script setup lang="ts">
-import { useCreatePet } from '~/composables/pets'
+import { useFetchCreatePet } from '~/composables/pets'
 
 const currentStep = ref(1)
 
@@ -383,7 +383,7 @@ const form = reactive({
   vaccinated: false
 })
 
-const { execute: createPet, loading, error } = useCreatePet({
+const { execute: createPet, loading, error } = useFetchCreatePet({
   immediate: false,
   onSuccess: (pet) => {
     navigateTo(`/pets/${pet.id}`)
@@ -619,10 +619,10 @@ const handleSubmit = async () => {
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets, useCreatePet } from '~/composables/pets'
+import { useFetchGetPets, useFetchCreatePet } from '~/composables/pets'
 
 // Fetch existing pets
-const { data: pets, refresh } = await useFetchPets()
+const { data: pets, refresh } = await useFetchGetPets()
 
 const form = reactive({
   name: '',
@@ -630,7 +630,7 @@ const form = reactive({
   status: 'available'
 })
 
-const { execute: createPet, loading, error } = useCreatePet({
+const { execute: createPet, loading, error } = useFetchCreatePet({
   immediate: false
 })
 

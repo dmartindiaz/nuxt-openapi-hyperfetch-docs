@@ -7,7 +7,6 @@ Learn how to use per-request callbacks to handle specific behaviors for individu
 - **[Error Toast](./error-toast)** - Show toast notifications on errors
 - **[Success Navigation](./success-navigation)** - Navigate after successful requests
 - **[Request Logging](./request-logging)** - Log request details for debugging
-- **[Loading Spinner](./loading-spinner)** - Show/hide loading indicators
 
 ## What You'll Learn
 

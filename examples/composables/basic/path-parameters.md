@@ -6,14 +6,14 @@ Using dynamic route parameters with generated composables.
 
 ```vue
 <script setup lang="ts">
-import { useFetchPet } from '~/composables/pets'
+import { useFetchGetPetById } from '~/composables/pets'
 
 // Get ID from route
 const route = useRoute()
 const id = computed(() => route.params.id as string)
 
 // Fetch pet by ID
-const { data: pet, loading, error } = await useFetchPet(id.value)
+const { data: pet, loading, error } = await useFetchGetPetById({ petId: id.value })
 </script>
 
 <template>
@@ -33,13 +33,13 @@ const { data: pet, loading, error } = await useFetchPet(id.value)
 
 ```vue
 <script setup lang="ts">
-import { useFetchPet } from '~/composables/pets'
+import { useFetchGetPetById } from '~/composables/pets'
 
 const route = useRoute()
 const petId = computed(() => route.params.id as string)
 
 // Automatically refetch when petId changes
-const { data: pet, loading, error } = useFetchPet(petId)
+const { data: pet, loading, error } = useFetchGetPetById(() => ({ petId: petId.value }))
 
 // Watch for changes
 watch(petId, (newId, oldId) => {
@@ -97,7 +97,7 @@ const { data: photo, loading, error } = await useFetchPetPhoto(
 
 ```vue
 <script setup lang="ts">
-import { useFetchPet, useFetchPetPhotos } from '~/composables/pets'
+import { useFetchGetPetById, useFetchGetPetPhotos } from '~/composables/pets'
 
 const route = useRoute()
 const id = route.params.id as string
@@ -107,8 +107,8 @@ const [
   { data: pet, loading: loadingPet, error: errorPet },
   { data: photos, loading: loadingPhotos }
 ] = await Promise.all([
-  useFetchPet(id),
-  useFetchPetPhotos(id)
+  useFetchGetPetById({ petId: id }),
+  useFetchGetPetPhotos({ petId: id })
 ])
 
 // SEO
@@ -237,14 +237,14 @@ header {
 
 ```vue
 <script setup lang="ts">
-import { useFetchPet, useUpdatePet } from '~/composables/pets'
+import { useFetchGetPetById, useUpdatePet } from '~/composables/pets'
 
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
 
 // Fetch current pet data
-const { data: pet, loading } = await useFetchPet(id)
+const { data: pet, loading } = await useFetchGetPetById({ petId: id })
 
 // Form state
 const form = ref({
@@ -428,9 +428,9 @@ const { data: orders, loading } = await useFetchUserPetOrders(
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
-const { data: pets } = await useFetchPets()
+const { data: pets } = await useFetchGetPets()
 
 const route = useRoute()
 const currentId = computed(() => Number(route.params.id))

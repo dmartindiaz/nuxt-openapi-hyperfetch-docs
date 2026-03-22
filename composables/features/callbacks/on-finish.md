@@ -448,4 +448,4 @@ Both callbacks run (global first, then local).
 
 - [Callbacks Overview →](/composables/features/callbacks/overview)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
-- [Practical Examples →](/examples/composables/callbacks/loading-spinner)
+- [Practical Examples →](/examples/composables/callbacks/error-toast.md)

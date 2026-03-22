@@ -162,7 +162,6 @@ export default defineConfig({
               items: [
                 { text: 'Success Navigation', link: '/examples/composables/callbacks/success-navigation' },
                 { text: 'Error Toast', link: '/examples/composables/callbacks/error-toast' },
-                { text: 'Loading Spinner', link: '/examples/composables/callbacks/loading-spinner' },
                 { text: 'Request Logging', link: '/examples/composables/callbacks/request-logging' },
               ],
             },

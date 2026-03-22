@@ -1,12 +1,12 @@
 # Simple GET Request
 
-The most basic example: fetching data with the generated `useFetch` composable.
+The most basic example: fetching data with the generated `useFetchGetPets` composable.
 
 ## Basic Example
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
 const { data: pets, loading, error } = await useFetchPets()
 </script>
@@ -44,10 +44,10 @@ const { data: pets, loading, error } = await useFetchPets()
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
 // Don't await - load on client
-const { data: pets, loading, error } = useFetchPets()
+const { data: pets, loading, error } = useFetchGetPets()
 </script>
 
 <template>
@@ -96,10 +96,10 @@ const handleRefresh = async () => {
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 import type { Pet } from '~/types/api'
 
-const { data: pets, loading, error } = await useFetchPets()
+const { data: pets, loading, error } = await useFetchGetPets()
 
 // TypeScript knows pets is Pet[] | null
 const availablePets = computed(() => 
@@ -124,9 +124,9 @@ const totalPets = computed(() => pets.value?.length ?? 0)
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
-const { data: pets, loading } = await useFetchPets()
+const { data: pets, loading } = await useFetchGetPets()
 
 // Filter by status
 const availablePets = computed(() => 
@@ -178,9 +178,9 @@ const petsBySpecies = computed(() => {
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
-const { data: pets, loading, error, refresh } = await useFetchPets()
+const { data: pets, loading, error, refresh } = await useFetchGetPets()
 
 const errorMessage = computed(() => {
   if (!error.value) return null
@@ -266,10 +266,10 @@ const handleRetry = async () => {
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 
 // Use await for SSR
-const { data: pets, loading, error } = await useFetchPets()
+const { data: pets, loading, error } = await useFetchGetPets()
 
 // This will be rendered on the server
 const metaDescription = computed(() => 
@@ -301,11 +301,11 @@ useHead({
 
 ```vue
 <script setup lang="ts">
-import { useFetchPets } from '~/composables/pets'
+import { useFetchGetPets } from '~/composables/pets'
 import type { Pet } from '~/types/api'
 
 // Fetch pets
-const { data: pets, loading, error, refresh } = await useFetchPets()
+const { data: pets, loading, error, refresh } = await useFetchGetPets()
 
 // State
 const searchQuery = ref('')
