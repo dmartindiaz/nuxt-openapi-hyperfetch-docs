@@ -510,4 +510,4 @@ return // Why?
 - [Auth Token →](/examples/composables/global-callbacks/auth-token)
 - [Error Handling →](/examples/composables/global-callbacks/error-handling)
 - [Analytics →](/examples/composables/global-callbacks/analytics)
-- [Global Callbacks Guide →](/guide/composables/global-callbacks)
+- [Global Callbacks Guide →](/composables/features/global-callbacks/overview)

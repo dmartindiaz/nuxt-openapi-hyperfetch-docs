@@ -503,4 +503,4 @@ const nextPet = computed(() => {
 - [Query Parameters →](/examples/composables/basic/query-parameters)
 - [POST Request →](/examples/composables/basic/post-request)
 - [Callbacks →](/examples/composables/callbacks/)
-- [Composables API →](/api/composables/)
+- [Composables API →](/api/interfaces/composables)

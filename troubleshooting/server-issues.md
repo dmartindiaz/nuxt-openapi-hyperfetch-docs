@@ -543,5 +543,5 @@ npm run dev
 ## Next Steps
 
 - [Runtime Errors →](/troubleshooting/runtime-errors)
-- [Server Guide →](/guide/server/)
+- [Server Guide →](/server/)
 - [BFF Pattern →](/architecture/patterns/bff-pattern)

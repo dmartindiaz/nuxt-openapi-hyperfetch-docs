@@ -199,6 +199,6 @@ globalCallbacks.onFinish = () => {
 
 ## Related
 
-- [Callbacks Documentation](/composables/features/callbacks)
-- [Global Callbacks Guide](/composables/features/global-callbacks)
+- [Callbacks Documentation](/composables/features/callbacks/overview)
+- [Global Callbacks Guide](/composables/features/global-callbacks/overview)
 - [Skip Patterns Examples](/examples/composables/global-callbacks/skip-patterns)

@@ -131,5 +131,5 @@ export function useAsyncDataPet(
 
 ## Related
 
-- [Composables Guide](/composables/useFetch/)
-- [Choosing Between useFetch and useAsyncData](/guide/choosing-composable)
+- [Composables Guide](/composables/use-fetch/)
+- [Choosing Between useFetch and useAsyncData](/guide/choosing-a-generator)

@@ -278,5 +278,5 @@ export default defineNuxtPlugin(() => {
 ## Next Steps
 
 - [Runtime Config →](/api/runtime/config)
-- [Global Callbacks →](/composables/features/global-callbacks)
+- [Global Callbacks →](/composables/features/global-callbacks/overview)
 - [Examples →](/examples/composables/global-callbacks/auth-token)

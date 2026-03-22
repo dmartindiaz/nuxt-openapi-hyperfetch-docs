@@ -107,6 +107,6 @@ Complete example projects demonstrating different use cases:
 
 ## Next Steps
 
-- [Composables Guide →](/guide/composables/)
+- [Composables Guide →](/composables/)
 - [Server Routes Guide →](/server/)
 - [API Reference →](/api/)

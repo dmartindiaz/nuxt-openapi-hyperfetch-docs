@@ -488,4 +488,4 @@ console.log('Payload:', nuxtApp.payload.data)
 
 - [Runtime Errors →](/troubleshooting/runtime-errors)
 - [Type Errors →](/troubleshooting/type-errors)
-- [Composables Guide →](/guide/composables/)
+- [Composables Guide →](/composables/)

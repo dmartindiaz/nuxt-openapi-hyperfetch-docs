@@ -514,4 +514,4 @@ header {
 - [Path Parameters →](/examples/composables/basic/path-parameters)
 - [Query Parameters →](/examples/composables/basic/query-parameters)
 - [POST Request →](/examples/composables/basic/post-request)
-- [Composables Guide →](/guide/composables/)
+- [Composables Guide →](/composables/)

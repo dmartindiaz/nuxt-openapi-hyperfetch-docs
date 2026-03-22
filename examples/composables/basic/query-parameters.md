@@ -831,4 +831,4 @@ watch(() => filters.page, () => {
 
 - [POST Request →](/examples/composables/basic/post-request)
 - [Advanced Patterns →](/examples/composables/advanced/)
-- [Composables Guide →](/guide/composables/)
+- [Composables Guide →](/composables/)

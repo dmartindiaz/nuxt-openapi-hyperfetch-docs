@@ -650,4 +650,4 @@ button:disabled {
 - [Error Toast →](/examples/composables/callbacks/error-toast)
 - [Loading Spinner →](/examples/composables/callbacks/loading-spinner)
 - [Request Logging →](/examples/composables/callbacks/request-logging)
-- [Callbacks Guide →](/guide/composables/callbacks)
+- [Callbacks Guide →](/composables/features/callbacks/overview)

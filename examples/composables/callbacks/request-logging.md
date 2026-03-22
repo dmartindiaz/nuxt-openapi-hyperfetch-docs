@@ -677,4 +677,4 @@ const handleSubmit = async () => {
 
 - [Global Callbacks →](/examples/composables/global-callbacks/)
 - [Advanced Patterns →](/examples/composables/advanced/)
-- [Callbacks Guide →](/guide/composables/callbacks)
+- [Callbacks Guide →](/composables/features/callbacks/overview)

@@ -450,4 +450,4 @@ button:disabled {
 - [Analytics Tracking →](/examples/composables/global-callbacks/analytics)
 - [Skip Patterns →](/examples/composables/global-callbacks/skip-patterns)
 - [Auth Token →](/examples/composables/global-callbacks/auth-token)
-- [Global Callbacks Guide →](/guide/composables/global-callbacks)
+- [Global Callbacks Guide →](/composables/features/global-callbacks/overview)

@@ -626,4 +626,4 @@ const handleSubmit = async () => {
 - [Loading Spinner →](/examples/composables/callbacks/loading-spinner)
 - [Request Logging →](/examples/composables/callbacks/request-logging)
 - [Global Callbacks →](/examples/composables/global-callbacks/)
-- [Callbacks Guide →](/guide/composables/callbacks)
+- [Callbacks Guide →](/composables/features/callbacks/overview)

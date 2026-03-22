@@ -500,4 +500,4 @@ watch(() => form.species, (newValue) => {
 - [Skip Patterns →](/examples/composables/global-callbacks/skip-patterns)
 - [Auth Token →](/examples/composables/global-callbacks/auth-token)
 - [Error Handling →](/examples/composables/global-callbacks/error-handling)
-- [Global Callbacks Guide →](/guide/composables/global-callbacks)
+- [Global Callbacks Guide →](/composables/features/global-callbacks/overview)

@@ -327,4 +327,4 @@ export type PetWithoutId = Omit<Pet, 'id'>
 
 - [Composables Interfaces →](/api/interfaces/composables)
 - [Server Interfaces →](/api/interfaces/server)
-- [Type Safety Guide →](/guide/concepts#type-safety)
+- [Type Safety Guide →](/guide/core-concepts#type-safety)
