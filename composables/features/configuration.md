@@ -83,12 +83,16 @@ output: './api/generated'
 
 **Generated structure:**
 
+The top-level structure differs depending on the backend chosen during generation.
+
+_OpenAPI Generator (official):_
+
 ```
 output/                            # e.g. ./swagger
-├── apis/                          # OpenAPI-generated API classes
+├── apis/                          # API classes (one per tag)
 │   ├── PetApi.ts
 │   └── ...
-├── models/                        # OpenAPI-generated model types
+├── models/                        # Model types
 │   ├── Pet.ts
 │   └── ...
 └── composables/                   # Our generated composables
@@ -104,8 +108,31 @@ output/                            # e.g. ./swagger
         └── index.ts
 ```
 
+_@hey-api/openapi-ts:_
+
+```
+output/                            # e.g. ./swagger
+├── client/                        # HTTP client implementation
+├── core/                          # Core runtime utilities
+├── client.gen.ts
+├── index.ts
+├── sdk.gen.ts                     # All SDK operations
+├── types.gen.ts                   # All model types
+└── composables/                   # Our generated composables
+    ├── use-fetch/
+    │   ├── composables/
+    │   ├── runtime/
+    │   ├── shared/
+    │   └── index.ts
+    └── use-async-data/
+        ├── composables/
+        ├── runtime/
+        ├── shared/
+        └── index.ts
+```
+
 ::: tip
-`composables/` lives alongside the OpenAPI-generated files inside the same `output` directory.
+`composables/` lives alongside the backend-generated files inside the same `output` directory.
 :::
 
 ### baseUrl

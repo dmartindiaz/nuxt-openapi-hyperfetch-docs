@@ -2,11 +2,17 @@
 
 Get up and running with Nuxt OpenAPI Hyperfetch in under 5 minutes.
 
+> [!NOTE]
+> The CLI lets you choose between two backends for code generation:
+> - **OpenAPI Generator (official)** — requires **Java 11+** ([download](https://www.oracle.com/java/technologies/downloads/))
+> - **@hey-api/openapi-ts** — runs entirely on Node.js, no Java required
+
 ## Prerequisites
 
 - **Node.js**: v18.0.0 or higher
 - **Nuxt**: v3.0.0 or higher
 - **OpenAPI**: v3.0.0 or Swagger v2.0 specification file
+- **Java**: v11.0.0 or higher _(only required if using the OpenAPI Generator official backend)_
 
 ## Installation
 
@@ -80,9 +86,12 @@ nxh generate
 
 The CLI will prompt you for:
 
-1. **Input file**: Path to your OpenAPI spec
-2. **Output directory**: Where to generate files (e.g., `./composables/api`)
-3. **Generator type**: Choose from `useFetch`, `useAsyncData`, or `nuxtServer`
+1. **Backend**: Choose the code generation engine:
+   - `OpenAPI Generator (official)` — battle-tested, requires Java 11+
+   - `@hey-api/openapi-ts (Node.js)` — lightweight, no Java required
+2. **Input file**: Path to your OpenAPI spec
+3. **Output directory**: Where to generate files (e.g., `./composables/api`)
+4. **Generator type**: Choose from `useFetch`, `useAsyncData`, or `nuxtServer`
 
 Or provide arguments directly:
 
@@ -117,16 +126,54 @@ const { data: pets, pending, error } = useFetchGetPets()
 
 ### For useFetch and useAsyncData Generators
 
-Composables are generated **inside your `output` directory**, alongside the OpenAPI-generated files:
+Composables are generated **inside your `output` directory**, alongside the backend-generated files. The top-level structure differs depending on the backend you chose.
+
+#### OpenAPI Generator (official)
 
 ```
 output/                                # e.g. ./swagger
-├── apis/                              # OpenAPI-generated API classes
+├── apis/                              # API classes (one per tag)
 │   ├── PetApi.ts
 │   └── ...
-├── models/                            # OpenAPI-generated model types
+├── models/                            # Model types
 │   ├── Pet.ts
 │   └── ...
+└── composables/
+    └── use-fetch/                     # (or use-async-data/)
+        ├── index.ts                   # Exports all composables
+        ├── composables/               # Generated composables
+        │   ├── useFetchGetPets.ts     # Composable for GET /pets
+        │   ├── useFetchGetPetById.ts  # Composable for GET /pets/{id}
+        │   └── ...                    # One file per operation
+        ├── runtime/                   # Runtime helpers (copied once)
+        │   └── useApiRequest.ts       # Core composable wrapper
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts      # Helper functions for callbacks
+```
+
+#### @hey-api/openapi-ts
+
+```
+output/                                # e.g. ./swagger
+├── client/                            # HTTP client implementation
+│   ├── client.gen.ts
+│   ├── index.ts
+│   ├── types.gen.ts
+│   └── utils.gen.ts
+├── core/                              # Core runtime utilities
+│   ├── auth.gen.ts
+│   ├── bodySerializer.gen.ts
+│   ├── params.gen.ts
+│   ├── pathSerializer.gen.ts
+│   ├── queryKeySerializer.gen.ts
+│   ├── serverSentEvents.gen.ts
+│   ├── types.gen.ts
+│   └── utils.gen.ts
+├── client.gen.ts                      # Re-exports client
+├── index.ts
+├── sdk.gen.ts                         # All SDK operations
+├── types.gen.ts                       # All model types
 └── composables/
     └── use-fetch/                     # (or use-async-data/)
         ├── index.ts                   # Exports all composables

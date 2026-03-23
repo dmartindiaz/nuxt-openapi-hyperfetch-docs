@@ -138,14 +138,16 @@ Generated files follow different structures depending on the generator type:
 
 ### useFetch Generator
 
-Composables are generated inside `composables/use-fetch/` within the same `output` directory as the OpenAPI-generated files:
+Composables are generated inside `composables/use-fetch/` within the same `output` directory as the backend-generated files. The top-level structure differs depending on the backend:
+
+#### OpenAPI Generator (official)
 
 ```
 output/                              # e.g. ./swagger
-├── apis/                            # OpenAPI-generated API classes
+├── apis/                            # API classes (one per tag)
 │   ├── PetApi.ts
 │   └── ...
-├── models/                          # OpenAPI-generated model types
+├── models/                          # Model types
 │   ├── Pet.ts
 │   └── ...
 └── composables/
@@ -162,11 +164,49 @@ output/                              # e.g. ./swagger
                 └── apiHelpers.ts   # Helpers for callbacks
 ```
 
+#### @hey-api/openapi-ts
+
+```
+output/                              # e.g. ./swagger
+├── client/                          # HTTP client implementation
+│   ├── client.gen.ts
+│   ├── index.ts
+│   ├── types.gen.ts
+│   └── utils.gen.ts
+├── core/                            # Core runtime utilities
+│   ├── auth.gen.ts
+│   ├── bodySerializer.gen.ts
+│   ├── params.gen.ts
+│   ├── pathSerializer.gen.ts
+│   ├── queryKeySerializer.gen.ts
+│   ├── serverSentEvents.gen.ts
+│   ├── types.gen.ts
+│   └── utils.gen.ts
+├── client.gen.ts
+├── index.ts
+├── sdk.gen.ts                       # All SDK operations
+├── types.gen.ts                     # All model types
+└── composables/
+    └── use-fetch/
+        ├── index.ts                 # Exports all composables
+        ├── composables/             # Generated composables
+        │   ├── useFetchGetPets.ts
+        │   ├── useFetchGetPetById.ts
+        │   └── ...                  # One file per operation
+        ├── runtime/                 # Runtime helpers (copied once)
+        │   └── useApiRequest.ts     # Core wrapper for useFetch
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts   # Helpers for callbacks
+```
+
 ### useAsyncData Generator
+
+#### OpenAPI Generator (official)
 
 ```
 output/
-├── apis/  ...  (same OpenAPI files)
+├── apis/  ...  (same as useFetch above)
 └── composables/
     └── use-async-data/
         ├── index.ts                 # Exports all composables
@@ -178,6 +218,29 @@ output/
         ├── runtime/                       # Runtime helpers (copied once)
         │   ├── useApiAsyncData.ts         # Core wrapper for useAsyncData
         │   └── useApiAsyncDataRaw.ts      # Raw variant wrapper
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts
+```
+
+#### @hey-api/openapi-ts
+
+```
+output/
+├── client/  ...  (same as useFetch above)
+├── core/    ...  (same as useFetch above)
+├── sdk.gen.ts
+├── types.gen.ts
+└── composables/
+    └── use-async-data/
+        ├── index.ts
+        ├── composables/
+        │   ├── useAsyncDataGetPets.ts
+        │   ├── useAsyncDataGetPetById.ts
+        │   └── ...
+        ├── runtime/
+        │   ├── useApiAsyncData.ts
+        │   └── useApiAsyncDataRaw.ts
         └── shared/
             └── runtime/
                 └── apiHelpers.ts
