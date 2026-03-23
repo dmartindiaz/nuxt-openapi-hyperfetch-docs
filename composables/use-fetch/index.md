@@ -12,7 +12,7 @@ Generated `useFetch` composables provide:
 - ✅ SSR compatible
 - ✅ Lifecycle callbacks support
 - ✅ Global callbacks support
-- ✅ Reactive parameters
+- ✅ Reactive parameters — pass a `ref` or `computed` as params and the composable re-fetches automatically when it changes
 
 ## Generated Structure
 
@@ -102,8 +102,10 @@ See these guides for advanced features:
 
 Browse practical examples:
 
-- [Basic Usage](/composables/use-fetch/basic-usage)
-- [Configuration Options](/composables/use-fetch/configuration)
+- [Simple GET](/examples/composables/basic/simple-get)
+- [Path Parameters](/examples/composables/basic/path-parameters)
+- [Query Parameters](/examples/composables/basic/query-parameters)
+- [POST Request](/examples/composables/basic/post-request)
 
 ## Next Steps
 

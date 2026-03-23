@@ -13,6 +13,7 @@ Generated composables wrap Nuxt's `useAsyncData`. For core features like `data`,
 ## What the CLI Adds
 
 - ✅ **Type Safety**: Automatic types from OpenAPI schema
+- ✅ **Reactive Params**: Pass a `ref` or `computed` — auto-refresh when it changes (not in native Nuxt)
 - ✅ **Lifecycle Callbacks**: onRequest, onSuccess, onError, onFinish
 - ✅ **Pick Fields**: Select specific response fields with dot notation
 - ✅ **Response Headers** (Raw variant): Access headers & status (not in Nuxt)

@@ -10,12 +10,19 @@ Understanding the differences between `useAsyncData` and `useFetch` generators h
 | **Cache Key** | Automatic | Manual |
 | **Raw Response** | ❌ No | ✅ Yes |
 | **Response Headers** | ❌ No | ✅ Yes (Raw variant) |
+| **Reactive Params** | ✅ Native (watchEffect) | ✅ CLI-added |
 | **Data Transform** | ✅ Full | ✅ Full |
 | **Type Safety** | ✅ Full | ✅ Full |
 | **SSR Support** | ✅ Full | ✅ Full |
 | **Callbacks** | ✅ Full | ✅ Full |
 | **Global Callbacks** | ✅ Yes | ✅ Yes |
 | **Best For** | 80% of cases | Complex logic |
+
+::: tip Reactive Params — how each one works
+**useFetch**: Nuxt uses `watchEffect` internally, so it auto-detects any ref/computed read inside the URL function or `query`/`body` options.
+
+**useAsyncData**: Nuxt's native `useAsyncData` requires explicit `watch` sources and doesn't track the fetch function. The CLI-generated composables add this automatically — pass a `ref` or `computed` as params and they wire up the watch sources for you.
+:::
 
 ## API Differences
 
@@ -406,4 +413,3 @@ const { data: response } = useAsyncDataGetPetsRaw('pets')
 
 - [useFetch Guide](/composables/use-fetch/)
 - [useAsyncData Guide](/composables/use-async-data/)
-- [Basic Usage](/composables/use-fetch/basic-usage)

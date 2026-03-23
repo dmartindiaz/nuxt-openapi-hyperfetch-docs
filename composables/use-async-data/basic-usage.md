@@ -131,7 +131,80 @@ const { data: pets } = useAsyncDataGetPets(
 
 [Learn more about callbacks →](/composables/features/callbacks/overview)
 
-### 2. Pick
+### 2. Reactive Params — Auto-refresh on Change
+
+::: tip CLI Addition — Not in Native Nuxt
+Nuxt's native `useAsyncData` does **not** auto-detect reactive dependencies inside the fetch function. It requires you to manually declare `watch` sources, and even then it doesn't know how to re-evaluate the URL or params.
+
+The generated composables solve this: pass a `ref` or `computed` as params and the composable wires everything up automatically.
+:::
+
+Pass a `ref` or `computed` as `params` — when it changes, the composable re-fetches with the new values:
+
+**Path parameters:**
+
+```vue
+<script setup lang="ts">
+const petId = ref(1)
+
+// Reactively fetches /pet/1, then /pet/2 when petId changes
+const { data: pet } = useAsyncDataGetPetById(
+  computed(() => ({ petId: petId.value }))
+)
+
+function loadNext() {
+  petId.value++  // triggers automatic re-fetch
+}
+</script>
+```
+
+**Query parameters:**
+
+```vue
+<script setup lang="ts">
+const status = ref('available')
+
+// Re-fetches whenever status changes
+const { data: pets } = useAsyncDataFindPetsByStatus(
+  computed(() => ({ status: status.value }))
+)
+</script>
+
+<template>
+  <select v-model="status">
+    <option>available</option>
+    <option>pending</option>
+    <option>sold</option>
+  </select>
+</template>
+```
+
+**Disable auto-refresh** if you want to control when the re-fetch happens:
+
+```vue
+<script setup lang="ts">
+const petId = ref(1)
+
+const { data: pet, refresh } = useAsyncDataGetPetById(
+  computed(() => ({ petId: petId.value })),
+  { watch: false }  // petId changes won't trigger a re-fetch
+)
+
+async function loadPet(id: number) {
+  petId.value = id
+  await refresh()   // you decide when to fetch
+}
+</script>
+```
+
+**Plain objects still work exactly as before** — backward compatible:
+
+```typescript
+// Works just as before — no reactivity, fetches once
+const { data } = useAsyncDataGetPetById({ petId: 1 })
+```
+
+### 3. Pick
 
 Select specific fields from the response without `transform`:
 
@@ -335,4 +408,3 @@ const { data: pets } = useAsyncDataGetPets(
 - [Raw Responses](/composables/use-async-data/raw-responses)
 - [vs useFetch](/composables/use-async-data/vs-use-fetch)
 - [Callbacks](/composables/features/callbacks/overview)
-- [useFetch Basic Usage](/composables/use-fetch/basic-usage)
