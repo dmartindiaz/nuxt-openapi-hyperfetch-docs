@@ -12,7 +12,7 @@ Get up and running with Nuxt OpenAPI Hyperfetch in under 5 minutes.
 - **Node.js**: v18.0.0 or higher
 - **Nuxt**: v3.0.0 or higher
 - **OpenAPI**: v3.0.0 or Swagger v2.0 specification file
-- **Java**: v11.0.0 or higher _(only required if using the OpenAPI Generator official backend)_
+- **Java**: v11.0.0 or higher _(only required if using the OpenAPI Generator official)_
 
 ## Installation
 
