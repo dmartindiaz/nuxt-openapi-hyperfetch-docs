@@ -9,6 +9,7 @@ Understanding the differences between `useAsyncData` and `useFetch` generators h
 | **API Simplicity** | ⭐⭐⭐ Simple | ⭐⭐ Medium |
 | **Cache Key** | Automatic | Manual |
 | **Raw Response** | ❌ No | ✅ Yes |
+| **Response Headers** | ❌ No | ✅ Yes (Raw variant) |
 | **Data Transform** | ✅ Full | ✅ Full |
 | **Type Safety** | ✅ Full | ✅ Full |
 | **SSR Support** | ✅ Full | ✅ Full |
@@ -347,17 +348,29 @@ Both have similar performance:
 
 ## Decision Tree
 
-```mermaid
-graph TD
-    A[Need response headers/status?] -->|Yes| B[useAsyncData]
-    A -->|No| C[Multiple API calls?]
-    C -->|Yes| B
-    C -->|No| D[Need fine-grained cache control?]
-    D -->|Yes| B
-    D -->|No| E[useFetch]
-    
-    style E fill:#90EE90
-    style B fill:#FFD700
+```
+  Need response headers/status?
+            │
+       ┌────┴────┐
+       │         │
+      Yes        No
+       │         │
+       ▼         ▼
+ useAsyncData  Multiple API calls?
+                    │
+               ┌────┴────┐
+               │         │
+              Yes        No
+               │         │
+               ▼         ▼
+        useAsyncData  Need fine-grained cache control?
+                           │
+                      ┌────┴────┐
+                      │         │
+                     Yes        No
+                      │         │
+                      ▼         ▼
+               useAsyncData  useFetch ✅
 ```
 
 ## Recommendations

@@ -14,7 +14,11 @@ Use the `onRequest` callback to intercept and modify:
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ url, method, headers, body, query }) => {
-    // Modify the request before it's sent
+    // Return modifications to apply them
+    return {
+      headers: { ...headers, 'X-Custom': 'value' },
+      query: { ...query, timestamp: Date.now() }
+    }
   }
 })
 ```
@@ -26,9 +30,14 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    headers['X-Custom-Header'] = 'value'
-    headers['X-Request-ID'] = crypto.randomUUID()
-    headers['X-Client-Version'] = '1.0.0'
+    return {
+      headers: {
+        ...headers,
+        'X-Custom-Header': 'value',
+        'X-Request-ID': crypto.randomUUID(),
+        'X-Client-Version': '1.0.0'
+      }
+    }
   }
 })
 ```
@@ -38,12 +47,15 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    Object.assign(headers, {
-      'X-Platform': 'web',
-      'X-Language': 'en',
-      'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
-      'X-Request-Time': Date.now().toString()
-    })
+    return {
+      headers: {
+        ...headers,
+        'X-Platform': 'web',
+        'X-Language': 'en',
+        'X-Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+        'X-Request-Time': Date.now().toString()
+      }
+    }
   }
 })
 ```
@@ -54,13 +66,15 @@ useFetchGetPets({}, {
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     const isDev = process.env.NODE_ENV === 'development'
-    
-    if (isDev) {
-      headers['X-Debug-Mode'] = 'true'
-    }
-    
     const locale = useI18n().locale.value
-    headers['Accept-Language'] = locale
+    
+    return {
+      headers: {
+        ...headers,
+        ...(isDev && { 'X-Debug-Mode': 'true' }),
+        'Accept-Language': locale
+      }
+    }
   }
 })
 ```
@@ -70,8 +84,10 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    // Remove a header by setting to undefined
-    delete headers['X-Unwanted-Header']
+    const { ['X-Unwanted-Header']: removed, ...rest } = headers || {}
+    return {
+      headers: rest
+    }
   }
 })
 ```
@@ -83,9 +99,14 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ query }) => {
-    query.timestamp = Date.now()
-    query.version = 'v2'
-    query.format = 'json'
+    return {
+      query: {
+        ...query,
+        timestamp: Date.now(),
+        version: 'v2',
+        format: 'json'
+      }
+    }
   }
 })
 ```
@@ -97,11 +118,13 @@ useFetchGetPets(
   { status: 'available', limit: 10 },
   {
     onRequest: ({ query }) => {
-      // Increase limit
-      query.limit = 100
-      
-      // Add additional filter
-      query.includeArchived = true
+      return {
+        query: {
+          ...query,
+          limit: 100,
+          includeArchived: true
+        }
+      }
     }
   }
 )
@@ -114,9 +137,11 @@ useFetchGetPets(
   { tags: ['dog', 'cat'] },
   {
     onRequest: ({ query }) => {
-      // Convert array to comma-separated string
-      if (Array.isArray(query.tags)) {
-        query.tags = query.tags.join(',')
+      return {
+        query: {
+          ...query,
+          tags: Array.isArray(query?.tags) ? query.tags.join(',') : query?.tags
+        }
       }
     }
   }
@@ -133,9 +158,14 @@ useFetchCreatePet(
   {
     onRequest: ({ body }) => {
       if (body) {
-        body.createdAt = new Date().toISOString()
-        body.clientVersion = '1.0.0'
-        body.source = 'web'
+        return {
+          body: {
+            ...body,
+            createdAt: new Date().toISOString(),
+            clientVersion: '1.0.0',
+            source: 'web'
+          }
+        }
       }
     }
   }
@@ -150,8 +180,12 @@ useFetchCreatePet(
   {
     onRequest: ({ body }) => {
       if (body && body.name) {
-        // Capitalize name
-        body.name = body.name.charAt(0).toUpperCase() + body.name.slice(1)
+        return {
+          body: {
+            ...body,
+            name: body.name.charAt(0).toUpperCase() + body.name.slice(1)
+          }
+        }
       }
     }
   }
@@ -171,8 +205,13 @@ useFetchCreatePet(
           throw new Error('Name is required')
         }
         
-        // Sanitize
-        body.name = body.name.trim()
+        // Return sanitized body
+        return {
+          body: {
+            ...body,
+            name: body.name.trim()
+          }
+        }
       }
     }
   }
@@ -188,7 +227,12 @@ useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     const token = useCookie('auth-token').value
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${token}`
+        }
+      }
     }
   }
 })
@@ -200,10 +244,16 @@ useFetchGetPets({}, {
 useFetchGetPets({}, {
   onRequest: ({ headers, url, method }) => {
     const traceId = crypto.randomUUID()
-    headers['X-Trace-ID'] = traceId
-    headers['X-Span-ID'] = crypto.randomUUID()
     
     console.log(`[Trace ${traceId}] ${method} ${url}`)
+    
+    return {
+      headers: {
+        ...headers,
+        'X-Trace-ID': traceId,
+        'X-Span-ID': crypto.randomUUID()
+      }
+    }
   }
 })
 ```
@@ -213,8 +263,12 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ query }) => {
-    // Add timestamp to prevent caching
-    query._t = Date.now()
+    return {
+      query: {
+        ...query,
+        _t: Date.now()
+      }
+    }
   }
 })
 ```
@@ -226,18 +280,21 @@ useFetchCreateOrder(
   { body: orderData.value },
   {
     onRequest: ({ body, headers }) => {
-      if (body) {
-        // Add client metadata
-        body.metadata = {
-          clientVersion: '1.0.0',
-          platform: 'web',
-          userAgent: navigator.userAgent,
-          timestamp: Date.now()
+      return {
+        body: body ? {
+          ...body,
+          metadata: {
+            clientVersion: '1.0.0',
+            platform: 'web',
+            userAgent: navigator.userAgent,
+            timestamp: Date.now()
+          }
+        } : body,
+        headers: {
+          ...headers,
+          'X-Correlation-ID': crypto.randomUUID()
         }
       }
-      
-      // Add correlation ID
-      headers['X-Correlation-ID'] = crypto.randomUUID()
     }
   }
 )
@@ -248,11 +305,16 @@ useFetchCreateOrder(
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers, query }) => {
-    // Use headers for versioning
-    headers['X-API-Version'] = '2.0'
-    
-    // Or use query params
-    query.api_version = '2.0'
+    return {
+      headers: {
+        ...headers,
+        'X-API-Version': '2.0'
+      },
+      query: {
+        ...query,
+        api_version: '2.0'
+      }
+    }
   }
 })
 ```
@@ -264,11 +326,16 @@ useFetchGetPets({}, {
   onRequest: ({ headers, query }) => {
     const { locale } = useI18n()
     
-    // Via header
-    headers['Accept-Language'] = locale.value
-    
-    // Or via query
-    query.locale = locale.value
+    return {
+      headers: {
+        ...headers,
+        'Accept-Language': locale.value
+      },
+      query: {
+        ...query,
+        locale: locale.value
+      }
+    }
   }
 })
 ```
@@ -282,17 +349,19 @@ Use global callbacks for app-wide interception:
 export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers, query }) => {
-      // Add to ALL requests
       const token = useCookie('auth-token').value
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+      
+      return {
+        headers: {
+          ...headers,
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'X-Client-Version': '1.0.0'
+        },
+        query: {
+          ...query,
+          _t: Date.now()
+        }
       }
-      
-      // Prevent caching
-      query._t = Date.now()
-      
-      // Add client info
-      headers['X-Client-Version'] = '1.0.0'
     }
   })
 })
@@ -310,7 +379,12 @@ const maxRetries = 3
 const { refresh } = useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     if (retryCount.value > 0) {
-      headers['X-Retry-Count'] = retryCount.value.toString()
+      return {
+        headers: {
+          ...headers,
+          'X-Retry-Count': retryCount.value.toString()
+        }
+      }
     }
   },
   onError: async (error) => {
@@ -331,11 +405,15 @@ const { refresh } = useFetchGetPets({}, {
 const featureFlags = useFeatureFlags()
 
 useFetchGetPets({}, {
-  onRequest: ({ headers, query }) => {
-    // Send active feature flags
-    headers['X-Features'] = Object.keys(featureFlags)
-      .filter(key => featureFlags[key])
-      .join(',')
+  onRequest: ({ headers }) => {
+    return {
+      headers: {
+        ...headers,
+        'X-Features': Object.keys(featureFlags)
+          .filter(key => featureFlags[key])
+          .join(',')
+      }
+    }
   }
 })
 ```
@@ -346,7 +424,12 @@ useFetchGetPets({}, {
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     const variant = useCookie('ab-test-variant').value || 'A'
-    headers['X-AB-Variant'] = variant
+    return {
+      headers: {
+        ...headers,
+        'X-AB-Variant': variant
+      }
+    }
   }
 })
 ```
@@ -360,9 +443,16 @@ useFetchGetPets({}, {
   onRequest: ({ url, method, headers, body, query }) => {
     url         // string (readonly)
     method      // string (readonly)
-    headers     // Record<string, string> (mutable)
-    body        // any (mutable)
-    query       // Record<string, any> (mutable)
+    headers     // Record<string, string> | undefined
+    body        // any | undefined
+    query       // Record<string, any> | undefined
+    
+    // Return modifications:
+    return {
+      headers: { ...headers, 'X-Custom': 'value' },
+      query: { ...query, timestamp: Date.now() },
+      body: body ? { ...body, extra: 'data' } : undefined
+    }
   }
 })
 ```
@@ -372,41 +462,56 @@ useFetchGetPets({}, {
 ### ✅ Do
 
 ```typescript
-// ✅ Add headers
+// ✅ Return modified headers
 onRequest: ({ headers }) => {
-  headers['X-Custom'] = 'value'
+  return {
+    headers: { ...headers, 'X-Custom': 'value' }
+  }
 }
 
-// ✅ Modify query params
+// ✅ Return modified query
 onRequest: ({ query }) => {
-  query.timestamp = Date.now()
+  return {
+    query: { ...query, timestamp: Date.now() }
+  }
 }
 
-// ✅ Transform body data
+// ✅ Return modified body
 onRequest: ({ body }) => {
   if (body) {
-    body.processed = true
+    return {
+      body: { ...body, processed: true }
+    }
   }
 }
 
 // ✅ Use for auth
 onRequest: ({ headers }) => {
-  headers['Authorization'] = `Bearer ${token}`
+  return {
+    headers: { ...headers, 'Authorization': `Bearer ${token}` }
+  }
 }
 ```
 
 ### ❌ Don't
 
 ```typescript
+// ❌ Don't modify directly (won't work!)
+onRequest: ({ headers }) => {
+  headers['X-Custom'] = 'value' // ❌ Direct mutation doesn't work!
+}
+
 // ❌ Don't try to modify url/method
-onRequest: ({ url, method }) => {
-  url = '/different-url'      // Readonly!
-  method = 'POST'             // Readonly!
+onRequest: () => {
+  return {
+    url: '/different-url',  // ❌ url/method cannot be modified!
+    method: 'POST'
+  }
 }
 
 // ❌ Don't make API calls
 onRequest: async () => {
-  await $fetch('/other-endpoint')  // Race conditions!
+  await $fetch('/other-endpoint')  // ❌ Race conditions!
 }
 
 // ❌ Don't do heavy processing

@@ -1,17 +1,24 @@
 # Composables
 
-The `useFetch` and `useAsyncData` generators create type-safe composables for your Nuxt application. These composables wrap Nuxt's built-in data fetching composables with additional features like lifecycle callbacks, request interception, and global callback support.
+The `useFetch` and `useAsyncData` generators create type-safe composables for your Nuxt application. These composables wrap Nuxt's built-in data fetching composables with additional features.
 
-## Overview
+## What the CLI Adds
 
-Generated composables provide:
+Generated composables enhance Nuxt's `useFetch` and `useAsyncData` with:
 
 - ✅ **Type Safety**: Request parameters and responses are fully typed from OpenAPI schemas
-- ✅ **SSR Compatible**: Works seamlessly with Nuxt's server-side rendering
 - ✅ **Lifecycle Callbacks**: `onRequest`, `onSuccess`, `onError`, `onFinish`
-- ✅ **Global Callbacks**: Define callbacks once, apply to all requests
+- ✅ **Global Callbacks**: Define callbacks once in a plugin, apply to all requests
 - ✅ **Request Interception**: Modify headers, body, query params before sending
+- ✅ **SSR Compatible**: Works seamlessly with Nuxt's server-side rendering
 - ✅ **Zero Dependencies**: Only uses Nuxt built-in APIs
+
+::: tip Nuxt Documentation
+Generated composables wrap Nuxt's built-in composables. For complete documentation on standard options like `immediate`, `watch`, `server`, `lazy`, `transform`, see:
+
+- **[Nuxt useFetch Documentation →](https://nuxt.com/docs/api/composables/use-fetch)**
+- **[Nuxt useAsyncData Documentation →](https://nuxt.com/docs/api/composables/use-async-data)**
+:::
 
 ## Two Composable Types
 
@@ -54,7 +61,7 @@ useFetchGetPet(
     onRequest: () => console.log('Starting...'),
     onSuccess: (data) => console.log('Success!', data),
     onError: (error) => console.error('Failed!', error),
-    onFinish: () => console.log('Done!')
+    onFinish: ({ success }) => console.log('Done!', success ? '✓' : '✗')
   }
 )
 ```
@@ -144,28 +151,50 @@ useGlobalCallbacks({
 
 | Feature | useFetch | useAsyncData |
 |---------|----------|--------------|
-| Simplicity | ⭐⭐⭐ | ⭐⭐ |
-| Type Safety | ✅ Full | ✅ Full |
+| **CLI Features** | | |
+| Type Safety (from OpenAPI) | ✅ Full | ✅ Full |
+| Callbacks (CLI adds) | ✅ Full | ✅ Full |
+| Global Callbacks (CLI adds) | ✅ Full | ✅ Full |
+| **Nuxt Features** | | |
 | SSR Compatible | ✅ Yes | ✅ Yes |
-| Callbacks | ✅ Full | ✅ Full |
 | Raw Response | ❌ No | ✅ Yes |
-| Data Transform | ✅ Full | ✅ Full |
+| Data Transform | ✅ Yes | ✅ Yes |
 | Cache Key | Auto | Manual |
-| Best For | Simple calls | Complex logic |
+| **Best For** | Simple calls | Complex logic |
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Your Component] --> B[Generated Composable]
-    B --> C[useApiRequest / useApiAsyncData]
-    C --> D[Execute Callbacks]
-    D --> E[Nuxt useFetch / useAsyncData]
-    E --> F[API Server]
-    
-    style B fill:#e1f5ff
-    style C fill:#fff3e0
-    style D fill:#f3e5f5
+```
+      ┌───────────────────┐
+      │  Your Component   │
+      └─────────┬─────────┘
+                │
+                ▼
+      ┌───────────────────────────┐
+      │  Generated Composable     │  useFetchGetPets()
+      └─────────┬─────────────────┘
+                │
+                ▼
+      ┌───────────────────────────┐
+      │useApiRequest /            │  Runtime helper
+      │useApiAsyncData            │
+      └─────────┬─────────────────┘
+                │
+                ▼
+      ┌───────────────────────────┐
+      │   Execute Callbacks       │  onRequest, onSuccess, etc.
+      └─────────┬─────────────────┘
+                │
+                ▼
+      ┌───────────────────────────┐
+      │Nuxt useFetch /            │  Built-in Nuxt composables
+      │useAsyncData               │
+      └─────────┬─────────────────┘
+                │
+                ▼
+      ┌───────────────────────────┐
+      │      API Server           │
+      └───────────────────────────┘
 ```
 
 1. **Your Component** calls the generated composable

@@ -1,132 +1,96 @@
 # useAsyncData Composables
 
-The `useAsyncData` generator creates composables that wrap Nuxt's `useAsyncData` composable, providing more control and flexibility than `useFetch`.
+Generated composables wrap Nuxt's `useAsyncData`, adding type safety and extra features.
 
 ## Overview
 
-Generated `useAsyncData` composables provide:
+::: tip Nuxt useAsyncData Documentation
+Generated composables wrap Nuxt's `useAsyncData`. For core features like `data`, `pending`, `error`, `refresh()`, cache keys, and options like `immediate`, `watch`, `server`, `dedupe`, see:
 
-- ✅ Full control over request execution
-- ✅ Access to raw responses (headers, status)
-- ✅ Data transformation support
-- ✅ Manual cache key management
-- ✅ All benefits of `useFetch` (callbacks, type safety, SSR)
-- ⚠️ Requires explicit cache keys
-- ⚠️ Slightly more complex API
+**[Nuxt useAsyncData Official Documentation →](https://nuxt.com/docs/api/composables/use-async-data)**
+:::
 
-## Generated Structure
+## What the CLI Adds
 
-For an OpenAPI endpoint like this:
+- ✅ **Type Safety**: Automatic types from OpenAPI schema
+- ✅ **Lifecycle Callbacks**: onRequest, onSuccess, onError, onFinish
+- ✅ **Pick Fields**: Select specific response fields with dot notation
+- ✅ **Response Headers** (Raw variant): Access headers & status (not in Nuxt)
+- ✅ **Global Callbacks**: Apply hooks to all requests
+- ✅ **Global Headers**: Automatic authentication headers
+- ✅ **Request Interception**: Modify requests before sending
 
-```yaml
-/pets:
-  get:
-    operationId: getPets
-    responses:
-      200:
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/Pet'
-```
+## Two Variants Generated
 
-The generator creates **two composables**:
+For each OpenAPI endpoint, the CLI generates **two composables**:
 
 ### Standard Variant
 
-```typescript
-export function useAsyncDataGetPets(
-  key: string,
-  params?: {},
-  options?: ApiAsyncDataOptions<Pet[]>
-) {
-  return useApiAsyncData<Pet[]>(key, '/pets', {
-    method: 'GET',
-    ...options
-  })
-}
-```
-
-### Raw Variant
+Returns only data (like Nuxt's useAsyncData):
 
 ```typescript
-export function useAsyncDataGetPetsRaw(
-  key: string,
-  params?: {}
-) {
-  return useApiAsyncDataRaw<Pet[]>(key, '/pets', {
-    method: 'GET'
-  })
-}
+const { data: pets, pending, error } = useAsyncDataGetPets('pets-list')
+// data: Ref<Pet[]>
 ```
 
-## Basic Usage
+### Raw Variant (CLI Addition)
 
-### Simple Request
+Returns full response with headers, status, and data:
+
+```typescript
+const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+// response: Ref<{ data: Pet[], headers: Headers, status: number, statusText: string }>
+```
+
+::: tip Response Headers - Not in Nuxt
+**Important**: Nuxt's native `useAsyncData` does NOT return response headers or status codes. The Raw variant is a CLI addition for accessing pagination headers, rate limits, ETags, and more.
+:::
+
+## Quick Example
+
+## Quick Example
+
+### Standard Variant
 
 ```vue
 <script setup lang="ts">
-// Requires a unique cache key
-const { data: pets, pending, error } = useAsyncDataGetPets('pets-list')
+// Type-safe composable with lifecycle callbacks
+const { data: pets, pending, error } = useAsyncDataGetPets(
+  'pets-list',
+  {},
+  {
+    onSuccess: (pets) => {
+      console.log(`Loaded ${pets.length} pets`)
+    }
+  }
+)
 </script>
 
 <template>
-  <ul>
+  <div v-if="pending">Loading...</div>
+  <div v-else-if="error">Error: {{ error.message }}</div>
+  <ul v-else>
     <li v-for="pet in pets" :key="pet.id">{{ pet.name }}</li>
   </ul>
 </template>
 ```
 
-### With Parameters
-
-```typescript
-const { data: pet } = useAsyncDataGetPetById(
-  'pet-123',
-  { petId: 123 }
-)
-```
-
-### With Callbacks
-
-```typescript
-const { data: pets } = useAsyncDataGetPets(
-  'pets',
-  {},
-  {
-    onSuccess: (pets) => {
-      console.log(`Loaded ${pets.length} pets`)
-    },
-    onError: (error) => {
-      console.error('Failed to load pets:', error)
-    }
-  }
-)
-```
-
-## Raw Response Access
-
-Use the `Raw` variant to access full response:
+### Raw Variant (with Headers)
 
 ```vue
 <script setup lang="ts">
 const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
 
-watch(response, (res) => {
-  if (res) {
-    console.log('Status:', res.status)          // 200
-    console.log('Headers:', res.headers)        // Headers object
-    console.log('Data:', res._data)             // Pet[]
-  }
+const totalCount = computed(() => {
+  return response.value?.headers.get('X-Total-Count')
 })
 </script>
 
 <template>
   <div>
-    <p>Status: {{ response?.status }}</p>
+    <p>Total: {{ totalCount }}</p>
     <ul>
-      <li v-for="pet in response?._data" :key="pet.id">
+      <li v-for="pet in response?.data" :key="pet.id">
         {{ pet.name }}
       </li>
     </ul>
@@ -134,103 +98,26 @@ watch(response, (res) => {
 </template>
 ```
 
-## Data Transformation
-
-Transform response data before it's returned:
-
-```typescript
-const { data: petNames } = useAsyncDataGetPets(
-  'pet-names',
-  {},
-  {
-    transform: (pets) => pets.map(pet => pet.name)
-  }
-)
-
-// data is now string[] instead of Pet[]
-```
-
-## Cache Keys
-
-Cache keys are **required** and should be:
-
-### Unique Per Request
-
-```typescript
-// ❌ Bad - same key for different parameters
-const { data: pet1 } = useAsyncDataGetPetById('pet', { petId: 1 })
-const { data: pet2 } = useAsyncDataGetPetById('pet', { petId: 2 })
-
-// ✅ Good - unique keys
-const { data: pet1 } = useAsyncDataGetPetById('pet-1', { petId: 1 })
-const { data: pet2 } = useAsyncDataGetPetById('pet-2', { petId: 2 })
-```
-
-### Dynamic Based on Parameters
-
-```typescript
-const petId = ref(123)
-
-const { data: pet } = useAsyncDataGetPetById(
-  `pet-${petId.value}`,
-  { petId: petId.value }
-)
-```
-
-### Consistent Across Components
-
-```typescript
-// Component A
-const { data: pets } = useAsyncDataGetPets('pets-list')
-
-// Component B - shares cache with Component A
-const { data: pets } = useAsyncDataGetPets('pets-list')
-```
-
 ## When to Use
 
-### ✅ Perfect For
+### ✅ Use useAsyncData When:
 
-- **Data transformations**: Need to process response data
-- **Raw responses**: Need access to headers, status code
-- **Multiple API calls**: Combine multiple calls in one composable
-- **Fine-grained cache control**: Manage cache keys precisely
-- **Complex logic**: Need more control than `useFetch` provides
+- **Need response headers/status**: Pagination, rate limits, ETags
+- **Complex data transformations**: Multi-step processing
+- **Multiple API calls**: Combine several requests
+- **Fine-grained cache control**: Precise cache key management
 
-### ❌ Not Ideal For
+### ❌ Use useFetch Instead When:
 
-- **Simple GET requests**: `useFetch` is simpler
-- **Beginners**: `useFetch` has easier API
-- **When cache keys are annoying**: `useFetch` handles them automatically
+- **Simple GET requests**: useFetch is simpler
+- **Don't need headers**: Standard data fetching
+- **Auto cache keys are fine**: Less boilerplate
 
-## Comparison with useFetch
+[See detailed comparison →](/composables/use-async-data/vs-use-fetch)
 
-| Feature | useFetch | useAsyncData |
-|---------|----------|--------------|
-| Cache Key | Auto | Manual |
-| Raw Response | ❌ | ✅ |
-| Data Transform | ✅ Full | ✅ Full |
-| API Complexity | Simple | Medium |
-| Best For | Basic calls | Complex logic |
-
-## Advanced Features
-
-See these guides for advanced usage:
-
-- [Basic Usage](/composables/use-async-data/basic-usage) - Comprehensive examples
-- [Raw Responses](/composables/use-async-data/raw-responses) - Working with raw responses
-- [vs useFetch](/composables/use-async-data/vs-use-fetch) - When to use each
-
-## Examples
-
-Browse practical examples:
-
-- [Simple GET](/examples/composables/basic/simple-get)
-- [Data Transformation](/examples/composables/advanced/pagination)
-- [Multiple APIs](/examples/composables/advanced/authentication-flow)
-
-## Next Steps
+## Learn More
 
 - [Basic Usage →](/composables/use-async-data/basic-usage)
 - [Raw Responses →](/composables/use-async-data/raw-responses)
 - [useFetch vs useAsyncData →](/composables/use-async-data/vs-use-fetch)
+- [Shared Features →](/composables/features/)

@@ -5,14 +5,20 @@ The `onRequest` callback is called **before** the HTTP request is sent, allowing
 ## Signature
 
 ```typescript
-onRequest?: (context: OnRequestContext) => void | Promise<void>
+onRequest?: (context: OnRequestContext) => ModifiedRequestContext | void | Promise<ModifiedRequestContext | void>
 
 interface OnRequestContext {
   url: string                      // Request URL
   method: string                   // HTTP method (GET, POST, etc.)
-  headers: Record<string, string>  // Request headers (mutable)
-  body?: any                       // Request body (mutable)
-  query: Record<string, any>       // Query parameters (mutable)
+  headers?: Record<string, string> // Request headers
+  body?: any                       // Request body
+  query?: Record<string, any>      // Query parameters
+}
+
+interface ModifiedRequestContext {
+  headers?: Record<string, string> // Modified headers
+  body?: any                       // Modified body
+  query?: Record<string, any>      // Modified query parameters
 }
 ```
 
@@ -33,9 +39,14 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    headers['X-Custom-Header'] = 'value'
-    headers['X-Request-ID'] = crypto.randomUUID()
-    headers['X-Client-Version'] = '1.0.0'
+    return {
+      headers: {
+        ...headers,
+        'X-Custom-Header': 'value',
+        'X-Request-ID': crypto.randomUUID(),
+        'X-Client-Version': '1.0.0'
+      }
+    }
   }
 })
 ```
@@ -47,7 +58,12 @@ useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     const token = useCookie('auth-token').value
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${token}`
+        }
+      }
     }
   }
 })
@@ -58,15 +74,14 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ query }) => {
-    // Add timestamp to prevent caching
-    query.timestamp = Date.now()
-    
-    // Add version
-    query.v = '2.0'
-    
-    // Convert arrays to comma-separated
-    if (Array.isArray(query.tags)) {
-      query.tags = query.tags.join(',')
+    return {
+      query: {
+        ...query,
+        timestamp: Date.now(),
+        v: '2.0',
+        // Convert arrays to comma-separated
+        tags: Array.isArray(query?.tags) ? query.tags.join(',') : query?.tags
+      }
     }
   }
 })
@@ -80,63 +95,18 @@ useFetchCreatePet(
   {
     onRequest: ({ body }) => {
       if (body) {
-        // Add client metadata
-        body.clientVersion = '1.0.0'
-        body.timestamp = Date.now()
-        body.locale = navigator.language
+        return {
+          body: {
+            ...body,
+            clientVersion: '1.0.0',
+            timestamp: Date.now(),
+            locale: navigator.language
+          }
+        }
       }
     }
   }
 )
-```
-
-### Request Logging
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: ({ url, method, headers, body, query }) => {
-    console.group(`[API] ${method} ${url}`)
-    console.log('Headers:', headers)
-    console.log('Query:', query)
-    if (body) console.log('Body:', body)
-    console.groupEnd()
-  }
-})
-```
-
-### Show Loading Indicator
-
-```vue
-<script setup lang="ts">
-const loading = ref(false)
-
-const { data: pets } = useFetchGetPets({}, {
-  onRequest: () => {
-    loading.value = true
-  },
-  onFinish: () => {
-    loading.value = false
-  }
-})
-</script>
-
-<template>
-  <div v-if="loading" class="loading-spinner">Loading...</div>
-</template>
-```
-
-### Track Analytics
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: ({ url, method }) => {
-    trackEvent('api_request', {
-      url,
-      method,
-      timestamp: Date.now()
-    })
-  }
-})
 ```
 
 ### Correlation IDs
@@ -146,10 +116,16 @@ useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     // Generate correlation ID for request tracing
     const correlationId = crypto.randomUUID()
-    headers['X-Correlation-ID'] = correlationId
     
     // Store for later use
     sessionStorage.setItem('last-correlation-id', correlationId)
+    
+    return {
+      headers: {
+        ...headers,
+        'X-Correlation-ID': correlationId
+      }
+    }
   }
 })
 ```
@@ -163,44 +139,12 @@ useFetchGetPets({}, {
   onRequest: async ({ headers }) => {
     // Refresh token if needed
     const token = await refreshTokenIfNeeded()
-    headers['Authorization'] = `Bearer ${token}`
-  }
-})
-```
-
-## Modifying the Request
-
-All properties except `url` and `method` are **mutable**:
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: (context) => {
-    // ✅ Can modify
-    context.headers['X-Custom'] = 'value'
-    context.query.page = 1
-    if (context.body) {
-      context.body.extra = 'data'
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
     }
-    
-    // ❌ Cannot modify (readonly)
-    // context.url = '/different-url'
-    // context.method = 'POST'
-  }
-})
-```
-
-## Multiple Headers
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: ({ headers }) => {
-    Object.assign(headers, {
-      'X-Request-ID': crypto.randomUUID(),
-      'X-Client-Version': '1.0.0',
-      'X-Platform': 'web',
-      'X-Locale': navigator.language,
-      'Accept-Language': navigator.language
-    })
   }
 })
 ```
@@ -210,16 +154,26 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers, query }) => {
+    const modifications: any = {}
+    
     // Add auth only for certain environments
     if (process.env.NODE_ENV === 'production') {
       const token = useCookie('auth-token').value
-      headers['Authorization'] = `Bearer ${token}`
+      modifications.headers = {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
     }
     
     // Add debug flag in development
     if (process.env.NODE_ENV === 'development') {
-      query.debug = true
+      modifications.query = {
+        ...query,
+        debug: true
+      }
     }
+    
+    return modifications
   }
 })
 ```
@@ -236,7 +190,12 @@ useFetchGetPets({}, {
       // Request will not be sent
       throw new Error('No auth token available')
     }
-    headers['Authorization'] = `Bearer ${token}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
   }
 })
 ```
@@ -246,22 +205,26 @@ useFetchGetPets({}, {
 ### ✅ Do
 
 ```typescript
-// ✅ Add headers
+// ✅ Return modified headers
 onRequest: ({ headers }) => {
-  headers['X-Custom'] = 'value'
+  return {
+    headers: { ...headers, 'X-Custom': 'value' }
+  }
 }
 
-// ✅ Modify query params
+// ✅ Return modified query
 onRequest: ({ query }) => {
-  query.timestamp = Date.now()
+  return {
+    query: { ...query, timestamp: Date.now() }
+  }
 }
 
-// ✅ Log requests
+// ✅ Log requests (no return needed for side effects)
 onRequest: ({ url, method }) => {
   console.log(`${method} ${url}`)
 }
 
-// ✅ Track analytics
+// ✅ Track analytics (no return needed)
 onRequest: async ({ url }) => {
   await trackEvent('api_request', { url })
 }
@@ -270,83 +233,25 @@ onRequest: async ({ url }) => {
 ### ❌ Don't
 
 ```typescript
-// ❌ Don't mutate url/method
-onRequest: (context) => {
-  context.url = '/different-url' // Readonly!
+// ❌ Don't modify directly (won't work!)
+onRequest: ({ headers }) => {
+  headers['X-Custom'] = 'value' // ❌ Direct mutation doesn't work!
 }
 
-// ❌ Don't modify unrelated state
+// ❌ Don't try to modify url/method
 onRequest: () => {
-  someUnrelatedState.value = true // Side effect!
+  return { url: '/different-url' } // ❌ url/method are readonly!
+}
+
+// ❌ Don't modify unrelated state unnecessarily
+onRequest: () => {
+  someUnrelatedState.value = true // ⚠️ Side effect - use with caution
 }
 
 // ❌ Don't make other API calls (race conditions)
 onRequest: async () => {
-  await $fetch('/other-endpoint') // Can cause issues
+  await $fetch('/other-endpoint') // ❌ Can cause issues
 }
-```
-
-## Integration with Global Callbacks
-
-Local `onRequest` runs **after** global `onRequest`:
-
-```typescript
-// plugins/api.ts
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    // 1️⃣ Runs first
-    headers['Authorization'] = `Bearer ${token}`
-  }
-})
-
-// Component
-useFetchGetPets({}, {
-  onRequest: ({ headers }) => {
-    // 2️⃣ Runs second (can override global)
-    headers['X-Custom'] = 'value'
-  }
-})
-```
-
-## Examples
-
-### API Client Version Header
-
-```typescript
-const API_VERSION = '2.0.0'
-
-useFetchGetPets({}, {
-  onRequest: ({ headers }) => {
-    headers['X-API-Version'] = API_VERSION
-  }
-})
-```
-
-### Request Timing
-
-```typescript
-const requestStart = ref<number>(0)
-
-useFetchGetPets({}, {
-  onRequest: () => {
-    requestStart.value = performance.now()
-  },
-  onFinish: () => {
-    const duration = performance.now() - requestStart.value
-    console.log(`Request took ${duration}ms`)
-  }
-})
-```
-
-### Locale Header
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: ({ headers }) => {
-    const locale = useI18n().locale.value
-    headers['Accept-Language'] = locale
-  }
-})
 ```
 
 ## Next Steps

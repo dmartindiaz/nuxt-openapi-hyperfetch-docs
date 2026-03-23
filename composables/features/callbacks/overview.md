@@ -4,18 +4,31 @@ Callbacks let you execute code at different stages of the API request lifecycle.
 
 ## The Four Callbacks
 
-```mermaid
-graph LR
-    A[onRequest] --> B{Request}
-    B -->|Success| C[onSuccess]
-    B -->|Error| D[onError]
-    C --> E[onFinish]
-    D --> E
-    
-    style A fill:#e3f2fd
-    style C fill:#e8f5e9
-    style D fill:#ffebee
-    style E fill:#f3e5f5
+```
+           ┌────────────┐
+           │ onRequest  │  ⏱️  Before request is sent
+           └──────┬─────┘
+                  │
+                  ▼
+           ┌────────────┐
+           │  Request   │  🌐 HTTP request sent
+           └──────┬─────┘
+                  │
+             ┌────┴────┐
+             │         │
+        ✅ Success  ❌ Error
+             │         │
+             ▼         ▼
+      ┌───────────┐ ┌───────────┐
+      │onSuccess  │ │  onError  │  Response handling
+      └─────┬─────┘ └─────┬─────┘
+            │             │
+            └──────┬──────┘
+                   │
+                   ▼
+            ┌────────────┐
+            │  onFinish  │  🏁 Always runs (cleanup)
+            └────────────┘
 ```
 
 ### Execution Order
@@ -96,170 +109,6 @@ Called **always** after request completes (success or error).
 - Resetting UI state
 
 [Learn more about onFinish →](/composables/features/callbacks/on-finish)
-
-## Common Patterns
-
-### Loading State
-
-```vue
-<script setup lang="ts">
-const loading = ref(false)
-
-const { data: pet } = useFetchGetPetById(
-  { petId: 123 },
-  {
-    onRequest: () => {
-      loading.value = true
-    },
-    onFinish: () => {
-      loading.value = false
-    }
-  }
-)
-</script>
-
-<template>
-  <div v-if="loading">Loading...</div>
-  <div v-else>{{ pet?.name }}</div>
-</template>
-```
-
-### Success Toast
-
-```typescript
-useFetchCreatePet(
-  { body: formData.value },
-  {
-    onSuccess: (pet) => {
-      showToast(`Created pet: ${pet.name}`, 'success')
-      navigateTo(`/pets/${pet.id}`)
-    }
-  }
-)
-```
-
-### Error Handling
-
-```typescript
-useFetchGetPets({}, {
-  onError: (error) => {
-    if (error.status === 401) {
-      navigateTo('/login')
-    } else if (error.status === 404) {
-      showToast('Pets not found', 'error')
-    } else {
-      showToast('Failed to load pets', 'error')
-    }
-  }
-})
-```
-
-### Request Logging
-
-```typescript
-useFetchGetUsers({}, {
-  onRequest: ({ url, method }) => {
-    console.log(`[API] ${method} ${url}`)
-  },
-  onSuccess: (data) => {
-    console.log('[API] Success:', data)
-  },
-  onError: (error) => {
-    console.error('[API] Error:', error)
-  }
-})
-```
-
-## Local vs Global Callbacks
-
-### Local Callbacks
-
-Defined per composable call:
-
-```typescript
-useFetchGetPets({}, {
-  onSuccess: (pets) => {
-    console.log('Loaded pets:', pets.length)
-  }
-})
-```
-
-Applied **only to this request**.
-
-### Global Callbacks
-
-Defined once in a plugin:
-
-```typescript
-// plugins/api.ts
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${token}`
-  }
-})
-```
-
-Applied **to all requests** automatically.
-
-[Learn more about global callbacks →](/composables/features/global-callbacks/overview)
-
-## Async Callbacks
-
-Callbacks can be async:
-
-```typescript
-useFetchGetPets({}, {
-  onRequest: async ({ headers }) => {
-    // Wait for token refresh
-    const token = await refreshToken()
-    headers['Authorization'] = `Bearer ${token}`
-  },
-  onSuccess: async (pets) => {
-    // Wait for analytics
-    await trackEvent('pets_loaded', { count: pets.length })
-  }
-})
-```
-
-## Callback Context
-
-Each callback receives specific context:
-
-### onRequest Context
-
-```typescript
-interface OnRequestContext {
-  url: string
-  method: string
-  headers: Record<string, string>
-  body?: any
-  query: Record<string, any>
-}
-```
-
-### onSuccess Context
-
-```typescript
-// Just the response data (fully typed)
-type OnSuccessContext<T> = T
-```
-
-### onError Context
-
-```typescript
-interface ApiError extends Error {
-  status: number
-  statusText: string
-  data: any
-  url: string
-}
-```
-
-### onFinish Context
-
-```typescript
-// No context (void)
-```
 
 ## Error Propagation
 

@@ -446,37 +446,6 @@ onError: async (error) => {
 }
 ```
 
-## Global vs Local Error Callbacks
-
-### Global (runs for all requests)
-
-```typescript
-// plugins/api.ts
-useGlobalCallbacks({
-  onError: (error) => {
-    // Handle ALL errors
-    console.error('[Global API Error]', error)
-    
-    if (error.status === 401) {
-      navigateTo('/login')
-    }
-  }
-})
-```
-
-### Local (runs for specific request)
-
-```typescript
-useFetchGetPets({}, {
-  onError: (error) => {
-    // Handle only for this request
-    showToast('Failed to load pets', 'error')
-  }
-})
-```
-
-Both callbacks run (global first, then local).
-
 ## Next Steps
 
 - [on Finish Callback →](/composables/features/callbacks/on-finish)

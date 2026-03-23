@@ -6,18 +6,32 @@ Understanding these core concepts will help you use Nuxt OpenAPI Hyperfetch effe
 
 Nuxt OpenAPI Hyperfetch follows a **two-stage generation pattern** to keep generated code clean and maintainable:
 
-```mermaid
-graph LR
-    A[OpenAPI Spec] --> B[Stage 1: Generate Wrappers]
-    B --> C[Generated Composables]
-    A --> D[Stage 2: Copy Runtime]
-    D --> E[Runtime Helper Files]
-    
-    C --> F[Your App]
-    E --> F
-    
-    style C fill:#e1f5ff
-    style E fill:#fff3e0
+```
+┌──────────────────┐
+│  OpenAPI Spec    │
+└────────┬─────────┘
+         │
+         ├─────────────────────────────────────────┐
+         │                                         │
+         ▼                                         ▼
+┌─────────────────────────┐            ┌────────────────────────┐
+│ Stage 1: Generate       │            │ Stage 2: Copy Runtime  │
+│ Wrappers                │            │                        │
+└──────────┬──────────────┘            └──────────┬─────────────┘
+           │                                      │
+           ▼                                      ▼
+  ┌──────────────────────┐            ┌─────────────────────────┐
+  │ Generated Composables│            │ Runtime Helper Files    │
+  │ useFetchGetPetById() │            │ useApiRequest.ts        │
+  │ useFetchAddPet()     │            │ apiHelpers.ts           │
+  └──────────┬───────────┘            └──────────┬──────────────┘
+             │                                   │
+             └──────────────┬────────────────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │   Your App      │
+                   └─────────────────┘
 ```
 
 ### Stage 1: Generate Wrappers
@@ -64,15 +78,33 @@ These are **copied once** into your project and **can be edited** if you need cu
 
 Every generated composable is a **thin wrapper** around Nuxt's built-in composables:
 
-```mermaid
-graph TD
-    A[Your Component] --> B[useFetchGetPetById]
-    B --> C[useApiRequest]
-    C --> D[Nuxt's useFetch]
-    D --> E[API Server]
-    
-    style B fill:#e1f5ff
-    style C fill:#fff3e0
+```
+      ┌─────────────────────┐
+      │   Your Component    │
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │ useFetchGetPetById  │  ← Generated wrapper (thin layer)
+      │                     │    Extracts params, adds types
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │   useApiRequest     │  ← Runtime helper (copied to project)
+      │                     │    Executes callbacks, transforms
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │  Nuxt's useFetch    │  ← Built-in Nuxt composable
+      │                     │    Handles SSR, reactivity
+      └──────────┬──────────┘
+                 │
+                 ▼
+      ┌─────────────────────┐
+      │     API Server      │
+      └─────────────────────┘
 ```
 
 ### What Wrappers Do
@@ -135,41 +167,72 @@ const { data, pending, error, refresh } = useFetchGetPets()
 ```typescript
 // Generated composable
 const { data, pending, error, refresh } = useAsyncDataGetPets(
-  'unique-key',
-  () => {
-    // Custom logic before/after request
-    const result = await $fetch('/api/pets')
-    return result.map(pet => ({ ...pet, displayName: pet.name.toUpperCase() }))
+  {}, // params (empty for GET /pets)
+  {
+    // Transform response data
+    transform: (pets) => pets.map(pet => ({ 
+      ...pet, 
+      displayName: pet.name.toUpperCase() 
+    })),
+    // Control execution
+    immediate: false, // Don't fetch on mount
+    lazy: true,       // Don't block navigation
+    server: true,     // Run on server during SSR
   }
 )
 ```
 
 **Characteristics:**
 - Uses Nuxt's `useAsyncData` under the hood
-- Requires a unique cache key
-- More control over request execution
-- Can return raw `$fetch` response or transformed data
+- Unique cache key is auto-generated per endpoint
+- More control over request execution (immediate, lazy, server options)
+- Built-in support for data transformation via `transform` option
+- Better for complex scenarios with multiple operations
 
 **When to use:**
-- ✅ Need to transform response data
-- ✅ Multiple API calls in one composable
-- ✅ Conditional request execution
-- ✅ Access to raw response (headers, status)
+- ✅ Need to transform response data client-side
+- ✅ Control when the request executes (immediate vs lazy)
+- ✅ Need fine-grained SSR control
+- ✅ Want automatic request deduplication
 
 ### nuxtServer Generator
 
 **Best for:** Backend-for-Frontend (BFF) pattern, server-side logic
 
 ```typescript
-// Generated server route: server/api/pets/[petId].get.ts
-export default defineEventHandler(async (event) => {
-  const petId = getRouterParam(event, 'petId')
+// Generated server route: server/api/pets/[pet].get.ts
+export default defineEventHandler(async (event): Promise<Pet> => {
+  // 1. Extract and validate path parameter
+  const petId = getRouterParam(event, 'pet')
+  if (!petId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'petId is required'
+    })
+  }
   
-  // Call external API from server
-  const pet = await $fetch(`https://api.external.com/pets/${petId}`)
+  // 2. Get API configuration from runtime config
+  const config = useRuntimeConfig()
+  const baseUrl = config.apiBaseUrl
   
-  // Transform data on server (add permissions, filter sensitive fields)
-  return transformPetWithPermissions(pet, event)
+  try {
+    // 3. Call external API from your Nuxt server
+    const data = await $fetch<Pet>(`${baseUrl}/pet/${petId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        // Add auth if configured
+        ...(config.apiSecret ? { 'Authorization': `Bearer ${config.apiSecret}` } : {})
+      }
+    })
+    
+    // 4. Return data (or transform with BFF pattern)
+    return data
+  } catch (error: any) {
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.message || 'Request failed'
+    })
+  }
 })
 ```
 
@@ -179,17 +242,37 @@ export default defineEventHandler(async (event) => {
 const { data: pet } = useFetch(`/api/pets/${petId}`)
 ```
 
+::: tip BFF Pattern (Optional)
+If you generate with `--bff`, optional transformers are created:
+
+```typescript
+// server/bff/transformers/pets.ts (you implement the logic)
+export async function transformPet(data: Pet, event: H3Event, auth?: AuthContext) {
+  // Add user permissions, filter sensitive fields, etc.
+  return {
+    ...data,
+    canEdit: auth?.permissions.includes('pet:edit'),
+    // Remove sensitive fields based on auth
+  }
+}
+```
+
+The generated code will try to use the transformer if it exists.
+:::
+
 **Characteristics:**
 - Generates Nuxt server routes (not composables)
-- Runs on your Nuxt server (not directly to external API)
-- Can add auth context, transform data, combine sources
-- More secure (API keys stay on server)
+- Routes follow Nuxt conventions: `[param].method.ts`
+- Uses `useRuntimeConfig()` for API base URL and secrets
+- Handles parameter validation and error responses
+- API keys and secrets stay on server (never exposed to client)
 
 **When to use:**
 - ✅ Need authentication context (JWT verification)
 - ✅ Want to filter/transform data before sending to client
 - ✅ Need to combine data from multiple sources
 - ✅ Want to hide external API details from client
+- ✅ Keep API keys and secrets secure on server
 
 See [Choosing a Generator](/guide/choosing-a-generator) for detailed comparison.
 
@@ -264,29 +347,42 @@ components:
 Becomes:
 
 ```typescript
-// Generated types.d.ts
-interface Pet {
-  id: number
+// Generated by OpenAPI Generator in models/Pet.ts
+export interface Pet {
+  id?: number
   name: string
-  status: 'available' | 'pending' | 'sold'
+  status?: 'available' | 'pending' | 'sold'
 }
 ```
+
+::: tip
+TypeScript types are generated by **OpenAPI Generator** (not by nuxt-openapi-hyperfetch). Generated composables import these types to provide autocompletion and validation.
+:::
 
 ## 5. SSR Compatibility
 
 All generated composables work with Nuxt's **server-side rendering**:
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant NuxtServer
-    participant API
-    
-    Browser->>NuxtServer: Request page
-    NuxtServer->>API: useFetchGetPets() on server
-    API-->>NuxtServer: Returns data
-    NuxtServer->>Browser: Renders HTML + serialized data
-    Browser->>Browser: Hydrates (no extra API call)
+```
+   Browser              Nuxt Server              API
+      │                      │                    │
+      │ 1. Request page      │                    │
+      ├─────────────────────>│                    │
+      │                      │                    │
+      │                      │ 2. useFetchGetPets()│
+      │                      │    (on server)     │
+      │                      ├───────────────────>│
+      │                      │                    │
+      │                      │   3. Returns data  │
+      │                      │<───────────────────┤
+      │                      │                    │
+      │ 4. Renders HTML +    │                    │
+      │    serialized data   │                    │
+      │<─────────────────────┤                    │
+      │                      │                    │
+      │ 5. Hydrates          │                    │
+      │   (no extra request) │                    │
+      │                      │                    │
 ```
 
 **What this means:**
@@ -325,18 +421,28 @@ useFetchGetPetById(
     onRequest: ({ url, method, headers, body, query }) => {
       // ⏱️ Before request is sent
       // Use to: add headers, log requests, show loading UI
+      // You can modify headers here:
+      headers['Authorization'] = `Bearer ${token}`
     },
     onSuccess: (data) => {
       // ✅ When response is 2xx
       // Use to: show success toast, navigate, update state
+      console.log('Loaded pet:', data.name)
     },
     onError: (error) => {
       // ❌ When response is 4xx/5xx or network error
       // Use to: show error message, retry, log errors
+      console.error('Failed to load pet:', error)
     },
-    onFinish: () => {
+    onFinish: ({ data, error, success }) => {
       // 🏁 Always runs (after success or error)
+      // Receives context with data, error, and success flag
       // Use to: hide loading spinner, cleanup
+      if (success) {
+        console.log('Request completed successfully')
+      } else {
+        console.log('Request failed')
+      }
     }
   }
 )
@@ -344,14 +450,36 @@ useFetchGetPetById(
 
 ### Execution Order
 
-```mermaid
-graph TD
-    A[Component calls composable] --> B[onRequest]
-    B --> C{Request succeeds?}
-    C -->|Yes| D[onSuccess]
-    C -->|No| E[onError]
-    D --> F[onFinish]
-    E --> F
+```
+┌──────────────────────────────┐
+│ Component calls composable   │
+└──────────────┬───────────────┘
+               │
+               ▼
+         ┌──────────┐
+         │onRequest │  ⏱️  Before request is sent
+         └─────┬────┘
+               │
+               ▼
+         ┌──────────┐
+         │ Request  │  🌐 HTTP request sent
+         └─────┬────┘
+               │
+          ┌────┴────┐
+          │         │
+     ✅ Success   ❌ Error
+          │         │
+          ▼         ▼
+    ┌──────────┐ ┌──────────┐
+    │onSuccess │ │ onError  │  Response handling
+    └─────┬────┘ └─────┬────┘
+          │            │
+          └─────┬──────┘
+                │
+                ▼
+          ┌──────────┐
+          │ onFinish │  🏁 Always runs (success or error)
+          └──────────┘
 ```
 
 ### Global vs Local Callbacks
@@ -360,10 +488,26 @@ graph TD
 
 ```typescript
 // plugins/api.ts
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${getToken()}`
-  }
+export default defineNuxtPlugin(() => {
+  // Get auth token from cookie or localStorage
+  const authToken = useCookie('auth-token')
+  
+  // Define global callbacks for all API requests
+  useGlobalCallbacks({
+    onRequest: ({ headers }) => {
+      // Add auth token to all requests
+      if (authToken.value) {
+        headers['Authorization'] = `Bearer ${authToken.value}`
+      }
+    },
+    onError: (error) => {
+      // Global error handling
+      if (error.status === 401) {
+        // Redirect to login on unauthorized
+        navigateTo('/login')
+      }
+    }
+  })
 })
 ```
 
@@ -382,44 +526,6 @@ useFetchGetPets({}, {
 Applied to **this request only**.
 
 See [Callbacks](/composables/features/callbacks/overview) for full details.
-
-## 7. Request Interception
-
-Modify requests **before they're sent** using `onRequest`:
-
-```typescript
-useFetchGetUsers(
-  {},
-  {
-    onRequest: ({ url, method, headers, body, query }) => {
-      // ✅ Modify headers
-      headers['X-Custom-Header'] = 'value'
-      
-      // ✅ Modify query parameters
-      query.page = 1
-      query.limit = 100
-      
-      // ✅ Modify body (for POST/PUT)
-      if (body) {
-        body.timestamp = Date.now()
-      }
-      
-      // ✅ Log for debugging
-      console.log(`Making ${method} request to ${url}`)
-    }
-  }
-)
-```
-
-**Common Use Cases:**
-
-- Add authentication tokens
-- Add correlation IDs for tracing
-- Modify query params dynamically
-- Log requests for debugging
-- Add custom headers
-
-See [Request Interception](/composables/features/request-interception) for more.
 
 ## Next Steps
 

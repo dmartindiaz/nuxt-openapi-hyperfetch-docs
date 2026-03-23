@@ -18,6 +18,8 @@ The CLI will prompt you for:
 
 ### Example Session
 
+**For useFetch/useAsyncData:**
+
 ```bash
 $ nxh generate
 
@@ -29,14 +31,39 @@ $ nxh generate
 ✓ Found 15 operations
 ✓ Generated 15 composables
 ✓ Copied runtime files
-✓ Generated types
 
 Done! Generated files in ./composables/api
+```
+
+**For nuxtServer:**
+
+```bash
+$ nxh generate
+
+? Enter path to OpenAPI specification file: swagger.yaml
+? Enter output directory: ./server/api
+? Select generator type: nuxtServer
+? Enable BFF pattern? (y/n): y
+
+✓ Parsed OpenAPI specification
+✓ Found 15 operations
+✓ Generated 15 server routes
+✓ Generated BFF structure (auth + transformers)
+✓ Generated configuration files
+
+Done! Generated files in ./server/api
+Next steps:
+1. Copy .env.example to .env and configure your backend URL
+2. Update nuxt.config.ts with runtimeConfig
+3. Implement authentication in server/auth/context.ts
+4. See SERVER_ROUTES.md for documentation
 ```
 
 ## Command-Line Arguments
 
 For automation or scripts, provide all arguments:
+
+**useFetch/useAsyncData:**
 
 ```bash
 nxh generate \
@@ -45,10 +72,36 @@ nxh generate \
   --generator useFetch
 ```
 
+**nuxtServer:**
+
+```bash
+nxh generate \
+  --input swagger.yaml \
+  --output ./server/api \
+  --generator nuxtServer
+```
+
+**nuxtServer with BFF:**
+
+```bash
+nxh generate \
+  --input swagger.yaml \
+  --output ./server/api \
+  --generator nuxtServer \
+  --bff
+```
+
 ### Short Aliases
 
 ```bash
+# useFetch
 nxh generate -i swagger.yaml -o ./composables/api -g useFetch
+
+# nuxtServer
+nxh generate -i swagger.yaml -o ./server/api -g nuxtServer
+
+# nuxtServer with BFF
+nxh generate -i swagger.yaml -o ./server/api -g nuxtServer --bff
 ```
 
 ## Input File Formats
@@ -81,37 +134,134 @@ The generator can fetch specs from URLs (useful for CI/CD).
 
 ## Output Structure
 
-Generated files follow a consistent structure:
+Generated files follow different structures depending on the generator type:
+
+### useFetch Generator
+
+Composables are generated inside `composables/use-fetch/` within the same `output` directory as the OpenAPI-generated files:
 
 ```
-<output-directory>/
-├── index.ts                    # Exports all composables
-├── types.d.ts                  # Generated TypeScript types
-├── runtime/                    # Helper functions (copied)
-│   ├── use-api-request.ts      # Core wrapper
-│   ├── use-api-async-data.ts   # AsyncData variant
-│   ├── callbacks.ts            # Callback types
-│   └── global-callbacks.ts     # Global callback utilities
-└── composables/                # Generated composables (or routes/)
-    ├── getPets.ts
-    ├── getPetById.ts
-    ├── createPet.ts
-    └── ...
+output/                              # e.g. ./swagger
+├── apis/                            # OpenAPI-generated API classes
+│   ├── PetApi.ts
+│   └── ...
+├── models/                          # OpenAPI-generated model types
+│   ├── Pet.ts
+│   └── ...
+└── composables/
+    └── use-fetch/
+        ├── index.ts                 # Exports all composables
+        ├── composables/             # Generated composables
+        │   ├── useFetchGetPets.ts
+        │   ├── useFetchGetPetById.ts
+        │   └── ...                  # One file per operation
+        ├── runtime/                 # Runtime helpers (copied once)
+        │   └── useApiRequest.ts     # Core wrapper for useFetch
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts   # Helpers for callbacks
 ```
+
+### useAsyncData Generator
+
+```
+output/
+├── apis/  ...  (same OpenAPI files)
+└── composables/
+    └── use-async-data/
+        ├── index.ts                 # Exports all composables
+        ├── composables/             # Generated composables
+        │   ├── useAsyncDataGetPets.ts
+        │   ├── useAsyncDataGetPetById.ts
+        │   ├── useAsyncDataGetPetsRaw.ts  # Raw variant
+        │   └── ...                        # One or two files per operation
+        ├── runtime/                       # Runtime helpers (copied once)
+        │   ├── useApiAsyncData.ts         # Core wrapper for useAsyncData
+        │   └── useApiAsyncDataRaw.ts      # Raw variant wrapper
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts
+```
+
+### nuxtServer Generator
+
+**Basic Mode (without BFF):**
+
+```
+server/
+└── api/                        # Server routes (generated)
+    ├── _routes.ts              # Documentation file (list of all routes)
+    ├── pet/
+    │   ├── index.get.ts        # GET /api/pet
+    │   ├── index.post.ts       # POST /api/pet
+    │   ├── [id].get.ts         # GET /api/pet/:id
+    │   ├── [id].put.ts         # PUT /api/pet/:id
+    │   └── [id].delete.ts      # DELETE /api/pet/:id
+    ├── store/
+    │   └── inventory.get.ts    # GET /api/store/inventory
+    └── user/
+        ├── index.post.ts       # POST /api/user
+        └── [username].get.ts   # GET /api/user/:username
+
+# Also generates in project root:
+└── nuxt.config.example.ts      # Example runtime config
+```
+
+**BFF Mode (with --bff flag):**
+
+```
+server/
+├── api/                        # Server routes (same as basic)
+│   ├── _routes.ts
+│   └── ...
+├── auth/                       # Authentication (generated once)
+│   ├── context.ts              # Extract auth from request
+│   └── types.ts                # AuthContext interface
+└── bff/                        # Backend-for-Frontend logic
+    ├── README.md               # BFF documentation
+    ├── _transformers.example.ts # Example transformers
+    └── transformers/           # Resource transformers (generated once)
+        ├── pet.ts              # Transform pet data
+        ├── store.ts            # Transform store data
+        └── user.ts             # Transform user data
+
+# Also generates in project root:
+└── nuxt.config.example.ts
+```
+
+::: tip Path Params Conversion
+The nuxtServer generator converts OpenAPI path params to Nuxt conventions:
+- `{petId}` → `[id]`
+- `{username}` → `[username]`
+- `/pet` → `pet/index.{method}.ts`
+- `/pet/{petId}` → `pet/[id].{method}.ts`
+:::
 
 ### Key Files
+
+**For useFetch/useAsyncData:**
 
 | File | Description | Editable? |
 |------|-------------|-----------|
 | `index.ts` | Exports all composables | ❌ Regenerated |
-| `types.d.ts` | TypeScript types from schemas | ❌ Regenerated |
-| `runtime/*.ts` | Helper functions | ✅ Yes (changes persist) |
 | `composables/*.ts` | Individual composables | ❌ Regenerated |
+| `runtime/*.ts` | Core wrappers (useFetch/useAsyncData) | ✅ Yes (copied once) |
+| `shared/runtime/apiHelpers.ts` | Callback helpers | ✅ Yes (copied once) |
+
+**For nuxtServer:**
+
+| File | Description | Editable? |
+|------|-------------|-----------|
+| `api/**/*.ts` | Server route handlers | ❌ Regenerated |
+| `api/_routes.ts` | Routes documentation | ❌ Regenerated |
+| `auth/*.ts` | Authentication logic | ✅ Yes (generated once) |
+| `bff/transformers/*.ts` | Data transformers | ✅ Yes (generated once) |
+| `nuxt.config.example.ts` | Config template | ❌ Regenerated |
 
 ::: warning
-Files in `composables/` and root-level `index.ts`/`types.d.ts` are **regenerated** every time you run the generator. Any manual edits will be lost.
+For **useFetch/useAsyncData**: Files in `composables/` and `index.ts` are regenerated. Files in `runtime/` and `shared/runtime/` are copied once and preserved.
 
-To customize behavior, edit files in `runtime/` instead.
+For **nuxtServer**: Route files in `api/` are regenerated. Auth and transformer files are generated once and preserved for customization.
 :::
 
 ## Regeneration
@@ -124,29 +274,56 @@ To customize behavior, edit files in `runtime/` instead.
 
 **What gets regenerated:**
 
-- ✅ `composables/` or `routes/` (all composable/route files)
+**useFetch/useAsyncData:**
+- ✅ `composables/*.ts` (all composable files)
 - ✅ `index.ts` (barrel export)
-- ✅ `types.d.ts` (TypeScript types)
+
+**nuxtServer:**
+- ✅ `api/**/*.ts` (all server route files)
+- ✅ `api/_routes.ts` (documentation)
+- ✅ `nuxt.config.example.ts` (project root)
 
 **What doesn't get regenerated:**
 
-- ✅ `runtime/` files (unless they don't exist)
+**useFetch/useAsyncData:**
+- ✅ `runtime/*.ts` files (copied once, preserved)
+- ✅ `shared/runtime/apiHelpers.ts` (copied once, preserved)
+
+**nuxtServer:**
+- ✅ `auth/*.ts` (authentication logic - generated once)
+- ✅ `bff/transformers/*.ts` (data transformers - generated once)
+- ✅ Your `.env` file (only `.env.example` is regenerated)
+
+**All generators:**
 - ✅ Your custom plugins, components, pages
 
 ### Regenerating Safely
 
-```bash
-# Backup runtime directory if you made changes
-cp -r composables/api/runtime composables/api/runtime.backup
+**For useFetch/useAsyncData:**
 
-# Regenerate
+```bash
+# Runtime files are preserved by default
+# Just regenerate when needed
 nxh generate -i swagger.yaml -o ./composables/api -g useFetch
 
-# Restore custom runtime changes if needed
-diff composables/api/runtime composables/api/runtime.backup
+# If you want to restore original runtime files, delete them first
+rm -rf composables/api/runtime composables/api/shared
+nxh generate -i swagger.yaml -o ./composables/api -g useFetch
 ```
 
-Or use version control:
+**For nuxtServer:**
+
+```bash
+# Auth and transformer files are preserved by default
+# Just regenerate when needed
+nxh generate -i swagger.yaml -o ./server/api -g nuxtServer --bff
+
+# If you want to regenerate auth or transformers, delete them first
+rm -rf server/auth server/bff
+nxh generate -i swagger.yaml -o ./server/api -g nuxtServer --bff
+```
+
+**Using version control (recommended):**
 
 ```bash
 # Commit before regenerating
@@ -154,13 +331,16 @@ git add -A
 git commit -m "Before regeneration"
 
 # Regenerate
-nxh generate -i swagger.yaml -o ./composables/api
+nxh generate -i swagger.yaml -o ./composables/api -g useFetch
 
 # Review changes
 git diff
 
-# Revert runtime changes if needed
-git checkout -- composables/api/runtime
+# Revert runtime changes if needed (useFetch/useAsyncData)
+git checkout -- composables/api/runtime composables/api/shared
+
+# Revert auth/transformers if needed (nuxtServer)
+git checkout -- server/auth server/bff
 ```
 
 ## Generator-Specific Output
@@ -168,44 +348,168 @@ git checkout -- composables/api/runtime
 ### useFetch Output
 
 ```typescript
-// composables/getPets.ts
-export function useFetchGetPets(
-  params?: {},
-  options?: ApiRequestOptions<Pet[]>
-) {
-  return useApiRequest<Pet[]>('/pets', {
+// composables/useFetchGetPetById.ts
+import type { GetPetByIdRequest, Pet } from '../../..';
+import {
+  useApiRequest,
+  type ApiRequestOptions,
+} from '../runtime/useApiRequest';
+
+/**
+ * Returns a single pet.
+ * Find pet by ID.
+ */
+export const useFetchGetPetById = (
+  params: GetPetByIdRequest,
+  options?: ApiRequestOptions<Pet>
+) => {
+  return useApiRequest<Pet>(`/pet/${params.petId}`, {
     method: 'GET',
-    ...options
-  })
-}
+    ...options,
+  });
+};
 ```
+
+**Key characteristics:**
+- Simple function signature: `(params, options)`
+- No cache key needed (useFetch handles it)
+- Direct path interpolation: `` `/pet/${params.petId}` ``
 
 ### useAsyncData Output
 
 ```typescript
-// composables/getPets.ts
-export function useAsyncDataGetPets(
-  key: string,
-  params?: {},
-  options?: ApiAsyncDataOptions<Pet[]>
-) {
-  return useApiAsyncData<Pet[]>(key, '/pets', {
-    method: 'GET',
-    ...options
-  })
-}
+// composables/useAsyncDataGetPetById.ts
+import type { GetPetByIdRequest, Pet } from '../../..';
+import {
+  useApiAsyncData,
+  type ApiAsyncDataOptions,
+} from '../runtime/useApiAsyncData';
+
+/**
+ * Returns a single pet.
+ * Find pet by ID.
+ */
+export const useAsyncDataGetPetById = (
+  params: GetPetByIdRequest,
+  options?: ApiAsyncDataOptions<Pet>
+) => {
+  return useApiAsyncData<Pet>(
+    'useAsyncDataGetPetById',  // Auto-generated unique cache key
+    `/pet/${params.petId}`,
+    {
+      method: 'GET',
+      ...options,
+    }
+  );
+};
 ```
+
+**Key characteristics:**
+- Includes auto-generated cache key: `'useAsyncDataGetPetById'`
+- Supports `transform`, `immediate`, `lazy` options
+- May generate `*Raw` variant for endpoints with request body
 
 ### nuxtServer Output
 
+**Basic Mode:**
+
 ```typescript
-// routes/pets/index.get.ts
-export default defineEventHandler(async (event) => {
-  // Server-side route
-  const pets = await $fetch('https://api.external.com/pets')
-  return pets
+// server/api/pet/[id].get.ts
+import { defineEventHandler, createError, getRouterParam } from 'h3'
+import type { Pet } from '~/swagger/models'
+
+/**
+ * Returns a single pet
+ * Find pet by ID
+ */
+export default defineEventHandler(async (event): Promise<Pet> => {
+  // 1. Extract and validate path parameter
+  const petId = getRouterParam(event, 'id')
+  if (!petId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'petId is required'
+    })
+  }
+  
+  // 2. Get API configuration from runtime config
+  const config = useRuntimeConfig()
+  const baseUrl = config.apiBaseUrl
+  
+  try {
+    // 3. Call external API from your Nuxt server
+    const data = await $fetch<Pet>(`${baseUrl}/pet/${petId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    // 4. Return data directly
+    return data
+  } catch (error: any) {
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.message || 'Request failed'
+    })
+  }
 })
 ```
+
+**BFF Mode (with --bff flag):**
+
+```typescript
+// server/api/pet/[id].get.ts
+import { defineEventHandler, createError, getRouterParam } from 'h3'
+import type { Pet } from '~/swagger/models'
+import { getAuthContext } from '~/server/auth/context'
+import { transformPet } from '~/server/bff/transformers/pet'
+
+export default defineEventHandler(async (event): Promise<Pet> => {
+  const petId = getRouterParam(event, 'id')
+  if (!petId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'petId is required'
+    })
+  }
+  
+  const config = useRuntimeConfig()
+  const baseUrl = config.apiBaseUrl
+  
+  // 1. Get authentication context
+  const auth = await getAuthContext(event)
+  
+  try {
+    // 2. Call external API
+    const data = await $fetch<Pet>(`${baseUrl}/pet/${petId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        // Add auth headers if available
+        ...(auth?.token ? { 'Authorization': `Bearer ${auth.token}` } : {})
+      }
+    })
+    
+    // 3. Transform data with BFF logic (if transformer exists)
+    if (transformPet) {
+      return await transformPet(data, event, auth)
+    }
+    
+    return data
+  } catch (error: any) {
+    throw createError({
+      statusCode: error.statusCode || 500,
+      statusMessage: error.message || 'Request failed'
+    })
+  }
+})
+```
+
+**Key characteristics:**
+- Generates actual server routes (not composables)
+- Follows Nuxt file-based routing: `[param].method.ts`
+- Includes parameter validation and error handling
+- BFF mode adds auth context and transformers
+- Uses `useRuntimeConfig()` for API base URL and secrets
 
 See [Choosing a Generator](/guide/choosing-a-generator) for detailed comparison.
 
@@ -215,15 +519,15 @@ If you only need composables for **specific endpoints**, manually edit the gener
 
 ```typescript
 // index.ts - Remove unused exports
-export { useFetchGetPets } from './composables/getPets'
-export { useFetchGetPetById } from './composables/getPetById'
-// Remove: export { useFetchDeletePet } from './composables/deletePet'
+export { useFetchGetPets } from './composables/useFetchGetPets'
+export { useFetchGetPetById } from './composables/useFetchGetPetById'
+// Remove: export { useFetchDeletePet } from './composables/useFetchDeletePet'
 ```
 
 Or delete unused files:
 
 ```bash
-rm composables/api/composables/deletePet.ts
+rm composables/api/composables/useFetchDeletePet.ts
 ```
 
 ::: tip
@@ -237,7 +541,7 @@ After generation, verify that everything works:
 ### 1. Check Types
 
 ```typescript
-// Should have full type support
+// useFetch example
 const { data, pending, error } = useFetchGetPets()
 
 // TypeScript should autocomplete
@@ -252,7 +556,11 @@ const { data: pets } = useFetchGetPets()
 </script>
 
 <template>
-  <div>{{ pets }}</div>
+  <ul v-if="pets">
+    <li v-for="pet in pets" :key="pet.id">
+      {{ pet.name }}
+    </li>
+  </ul>
 </template>
 ```
 

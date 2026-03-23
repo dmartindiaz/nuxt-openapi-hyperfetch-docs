@@ -1,487 +1,144 @@
-# Data Transformers
+# Transformers
 
-Transform backend responses to optimize them for your frontend needs with data transformers.
+When you generate in BFF mode, the CLI creates one transformer file per resource in `server/bff/transformers/`. These files are generated once and **never overwritten** — they are where you put your business logic.
 
-## Overview
+## Generated files
 
-Data transformers modify backend responses to:
+For a Petstore API the generator creates:
 
-- **Add user-specific flags** (canEdit, canDelete, isOwner)
-- **Filter sensitive data** (remove internal fields)
-- **Add permissions** (based on user role)
-- **Combine data sources** (aggregate multiple APIs)
-- **Format data** (dates, currencies, etc.)
+```
+server/bff/transformers/
+├── pet.ts
+├── store.ts
+└── user.ts
+```
+
+Each file exports one async function with this signature:
 
 ```typescript
-// Backend response
-{
-  id: 1,
-  name: "Fluffy",
-  owner_id: 123,
-  internal_status: "available_for_sale",
-  cost_price: 500
-}
+// server/bff/transformers/pet.ts
+import type { H3Event } from 'h3'
+import type { AuthContext } from '~/server/auth/types'
+import type { Pet, ModelApiResponse } from '~/swagger/models'
 
-// After transformation
-{
-  id: 1,
-  name: "Fluffy",
-  canEdit: true,      // Added
-  canDelete: false,   // Added
-  isOwner: true       // Added
-  // Removed: owner_id, internal_status, cost_price
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  // Default: return data unchanged
+  return data
 }
 ```
 
-## Basic Transformation
+## How it gets called
 
-### Simple Transform
+Every generated BFF route calls the transformer automatically after fetching data from your backend:
 
 ```typescript
-// server/api/pets/index.get.ts
-export default defineEventHandler(async (event) => {
-  const user = await verifyAuth(event)
-  const pets = await fetchFromBackend()
-  
-  // Transform response
-  return pets.map(pet => ({
-    id: pet.id,
-    name: pet.name,
-    status: pet.status,
-    // Remove sensitive fields automatically
-  }))
-})
+// Generated route (excerpt) — server/api/pet.post.ts
+const result = await $fetch(...)
+const { transformPet } = await import('~/server/bff/transformers/pet')
+return await transformPet(result, event, auth)
 ```
 
-### With User Context
+You never call the transformer manually — just implement it.
+
+## What you can do in a transformer
+
+### Add computed / permission flags
 
 ```typescript
-export default defineEventHandler(async (event) => {
-  const user = await verifyAuth(event)
-  const pets = await fetchFromBackend()
-  
-  return pets.map(pet => ({
-    ...pet,
-    // Add user-specific flags
-    isOwner: pet.ownerId === user.id,
-    canEdit: pet.ownerId === user.id || user.role === 'admin',
-    canDelete: user.role === 'admin'
-  }))
-})
-```
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  if (typeof data !== 'object' || data === null) return data
 
-## Transformer Utilities
-
-### Create Transformer
-
-```typescript
-// server/utils/transformers.ts
-export function transformPet(pet: any, user: AuthUser) {
   return {
-    id: pet.id,
-    name: pet.name,
-    species: pet.species,
-    age: pet.age,
-    status: pet.status,
-    photoUrl: pet.photoUrls?.[0],
-    
-    // User-specific fields
-    isOwner: pet.ownerId === user.id,
-    canEdit: pet.ownerId === user.id || user.role === 'admin',
-    canDelete: user.role === 'admin',
-    isFavorite: user.favorites?.includes(pet.id) || false
+    ...data,
+    canEdit: auth?.permissions.includes('pet:write') ?? false,
+    canDelete: auth?.permissions.includes('pet:delete') ?? false,
+  } as T
+}
+```
+
+### Filter sensitive fields
+
+```typescript
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  const { internalId, costPrice, ...safe } = data as any
+  return safe as T
+}
+```
+
+### Filter based on permissions
+
+```typescript
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  if (!auth?.permissions.includes('pet:read:all')) {
+    const { sensitiveField, ...safe } = data as any
+    return safe as T
   }
+  return data
 }
-
-// Usage
-export default defineEventHandler(async (event) => {
-  const user = await verifyAuth(event)
-  const pets = await fetchFromBackend()
-  
-  return pets.map(pet => transformPet(pet, user))
-})
 ```
 
-### Collection Transformer
+### Add computed fields
 
 ```typescript
-export function transformPetCollection(
-  pets: any[],
-  user: AuthUser
-) {
-  return pets.map(pet => transformPet(pet, user))
-}
-
-// Usage
-export default defineEventHandler(async (event) => {
-  const user = await verifyAuth(event)
-  const pets = await fetchFromBackend()
-  
-  return transformPetCollection(pets, user)
-})
-```
-
-## Common Transformations
-
-### 1. Permission Flags
-
-Add user-specific permission flags:
-
-```typescript
-export function addPermissionFlags(item: any, user: AuthUser) {
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
   return {
-    ...item,
-    canView: true,  // If user can see it, they can view it
-    canEdit: item.ownerId === user.id || hasRole(user, 'admin', 'moderator'),
-    canDelete: hasRole(user, 'admin'),
-    canShare: hasPermission(user, 'items.share')
-  }
+    ...(data as any),
+    displayName: `${(data as any).name} (${(data as any).status})`,
+  } as T
 }
 ```
 
-### 2. Filter Sensitive Fields
+## Using typed models
 
-Remove internal/sensitive data:
-
-```typescript
-export function removeSensitiveFields(item: any) {
-  const {
-    // Remove these fields
-    internal_id,
-    internal_status,
-    cost_price,
-    supplier_id,
-    profit_margin,
-    internal_notes,
-    ...publicFields
-  } = item
-  
-  return publicFields
-}
-```
-
-### 3. Format Dates
+The generated imports give you the exact types from your OpenAPI spec. You can cast and use them:
 
 ```typescript
-export function formatDates(item: any) {
-  return {
-    ...item,
-    createdAt: new Date(item.created_at).toISOString(),
-    updatedAt: new Date(item.updated_at).toISOString(),
-    // Remove snake_case originals
-    created_at: undefined,
-    updated_at: undefined
-  }
-}
-```
+import type { Pet } from '~/swagger/models'
 
-### 4. Format Currency
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  const pet = data as unknown as Pet
 
-```typescript
-export function formatPrice(item: any) {
-  return {
-    ...item,
-    price: {
-      amount: item.price,
-      formatted: new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      }).format(item.price)
-    }
-  }
-}
-```
-
-### 5. Flatten Nested Data
-
-```typescript
-export function flattenOwner(pet: any) {
-  return {
-    id: pet.id,
-    name: pet.name,
-    // Flatten owner object
-    ownerName: pet.owner?.name,
-    ownerEmail: pet.owner?.email,
-    ownerPhone: pet.owner?.phone
-  }
-}
-```
-
-## Chaining Transformers
-
-### Compose Multiple Transformers
-
-```typescript
-export function transformPet(pet: any, user: AuthUser) {
-  let transformed = pet
-  
-  // Apply transformations in order
-  transformed = removeSensitiveFields(transformed)
-  transformed = formatDates(transformed)
-  transformed = formatPrice(transformed)
-  transformed = addPermissionFlags(transformed, user)
-  
-  return transformed
-}
-```
-
-### Pipeline Function
-
-```typescript
-export function pipe<T>(...fns: Array<(arg: T) => T>) {
-  return (value: T) => fns.reduce((acc, fn) => fn(acc), value)
-}
-
-// Usage
-export const transformPet = (user: AuthUser) => pipe(
-  removeSensitiveFields,
-  formatDates,
-  formatPrice,
-  (pet) => addPermissionFlags(pet, user)
-)
-
-// Apply
-export default defineEventHandler(async (event) => {
-  const user = await verifyAuth(event)
-  const pets = await fetchFromBackend()
-  
-  const transformer = transformPet(user)
-  return pets.map(transformer)
-})
-```
-
-## Role-Based Transformations
-
-### Show Different Data by Role
-
-```typescript
-export function transformPet(pet: any, user: AuthUser) {
-  const base = {
-    id: pet.id,
-    name: pet.name,
-    status: pet.status
-  }
-  
-  // Regular users
-  if (user.role === 'user') {
-    return {
-      ...base,
-      canEdit: pet.ownerId === user.id
-    }
-  }
-  
-  // Moderators see more
-  if (user.role === 'moderator') {
-    return {
-      ...base,
-      ownerEmail: pet.ownerEmail,
-      reportCount: pet.reportCount,
-      canEdit: true,
-      canDelete: false
-    }
-  }
-  
-  // Admins see everything
-  if (user.role === 'admin') {
-    return {
-      ...pet,  // All fields
-      canEdit: true,
-      canDelete: true
-    }
-  }
-  
-  return base
-}
-```
-
-## Conditional Fields
-
-### Include Fields Based on Permissions
-
-```typescript
-export function transformPet(pet: any, user: AuthUser) {
-  const response: any = {
-    id: pet.id,
-    name: pet.name,
-    status: pet.status
-  }
-  
-  // Add price if user has permission
-  if (hasPermission(user, 'pets.view_price')) {
-    response.price = pet.price
-  }
-  
-  // Add cost if admin
-  if (user.role === 'admin') {
-    response.cost = pet.cost
-    response.profit = pet.price - pet.cost
-  }
-  
-  // Add owner info if own pet
-  if (pet.ownerId === user.id) {
-    response.ownerNotes = pet.ownerNotes
-  }
-  
-  return response
-}
-```
-
-## TypeScript Support
-
-### Typed Transformers
-
-```typescript
-interface BackendPet {
-  id: number
-  name: string
-  owner_id: number
-  internal_status: string
-  cost_price: number
-  sell_price: number
-}
-
-interface FrontendPet {
-  id: number
-  name: string
-  canEdit: boolean
-  canDelete: boolean
-  isOwner: boolean
-}
-
-export function transformPet(
-  pet: BackendPet,
-  user: AuthUser
-): FrontendPet {
-  return {
-    id: pet.id,
-    name: pet.name,
-    canEdit: pet.owner_id === user.id || user.role === 'admin',
-    canDelete: user.role === 'admin',
-    isOwner: pet.owner_id === user.id
-  }
-}
-```
-
-## Performance Considerations
-
-### Memoize Expensive Operations
-
-```typescript
-const userPermissionsCache = new Map<number, Set<string>>()
-
-export function getUserPermissions(user: AuthUser): Set<string> {
-  if (userPermissionsCache.has(user.id)) {
-    return userPermissionsCache.get(user.id)!
-  }
-  
-  const permissions = new Set(user.permissions)
-  userPermissionsCache.set(user.id, permissions)
-  
-  return permissions
-}
-
-// Use in transformer
-export function transformPet(pet: any, user: AuthUser) {
-  const permissions = getUserPermissions(user)  // Cached
-  
   return {
     ...pet,
-    canEdit: permissions.has('pets.edit'),
-    canDelete: permissions.has('pets.delete')
-  }
+    canEdit: auth?.permissions.includes('pet:write') ?? false,
+  } as unknown as T
 }
 ```
 
-### Avoid Deep Copies
+## When auth is null
+
+`auth` is `null` when `getAuthContext` threw an error (the route caught it silently). Always guard with optional chaining:
 
 ```typescript
-// ❌ Slow: Deep copy everything
-return JSON.parse(JSON.stringify(pet))
-
-// ✅ Fast: Only copy what's needed
-return {
-  id: pet.id,
-  name: pet.name,
-  status: pet.status
-}
-```
-
-## Real-World Examples
-
-### E-commerce Product
-
-```typescript
-export function transformProduct(product: any, user: AuthUser) {
-  // Base product
-  const transformed: any = {
-    id: product.id,
-    name: product.name,
-    description: product.description,
-    price: product.price,
-    inStock: product.stock > 0,
-    rating: product.averageRating,
-    reviewCount: product.reviewCount
-  }
-  
-  // Member pricing
-  if (user.membership === 'premium') {
-    transformed.memberPrice = product.price * 0.9
-    transformed.savings = product.price * 0.1
-  }
-  
-  // Admin data
-  if (user.role === 'admin') {
-    transformed.cost = product.cost
-    transformed.profit = product.price - product.cost
-    transformed.supplierInfo = product.supplier
-  }
-  
-  // User-specific
-  if (user.authenticated) {
-    transformed.inWishlist = user.wishlist?.includes(product.id)
-    transformed.hasPurchased = user.purchases?.includes(product.id)
-  }
-  
-  return transformed
-}
-```
-
-### Social Media Post
-
-```typescript
-export function transformPost(post: any, user: AuthUser) {
-  return {
-    id: post.id,
-    content: post.content,
-    author: {
-      id: post.author.id,
-      name: post.author.name,
-      avatar: post.author.avatarUrl
-    },
-    createdAt: post.createdAt,
-    
-    // Engagement
-    likeCount: post.likeCount,
-    commentCount: post.commentCount,
-    shareCount: post.shareCount,
-    
-    // User-specific
-    isLiked: post.likes?.includes(user.id),
-    isBookmarked: user.bookmarks?.includes(post.id),
-    isAuthor: post.author.id === user.id,
-    
-    // Actions
-    canEdit: post.author.id === user.id,
-    canDelete: post.author.id === user.id || user.role === 'admin',
-    canReport: post.author.id !== user.id
-  }
-}
+canEdit: auth?.permissions.includes('pet:write') ?? false
 ```
 
 ## Next Steps
 
-- [Permission Flags →](/server/transformers/permission-flags)
-- [Filtering Data →](/server/transformers/filtering-data)
-- [Combining Sources →](/server/transformers/combining-sources)
-- [Custom Transformers →](/server/transformers/custom-transformers)
-- [Examples →](/examples/server/transformers/)
+- [Permission Flags →](/server/transformers/permissions)
+- [Filtering Data →](/server/transformers/filtering)
+- [Combining Sources →](/server/transformers/combining)

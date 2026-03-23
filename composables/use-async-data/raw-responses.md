@@ -10,21 +10,37 @@ Every `useAsyncData` composable has a **Raw variant** that returns the complete 
 // Standard variant - returns data only
 const { data: pets } = useAsyncDataGetPets('pets')
 
-// Raw variant - returns full response
+// Raw variant - returns full response with headers and status
 const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
 ```
+
+::: tip CLI Addition - Not in Nuxt
+**Important**: Nuxt's native `useAsyncData` does NOT return response headers or status codes.
+
+Our CLI's **Raw variant** adds this capability, giving you access to:
+- ✅ `headers` - Full Headers object
+- ✅ `status` - HTTP status code (200, 404, etc.)
+- ✅ `statusText` - Status message ("OK", "Not Found", etc.)
+- ✅ `data` - Response data (just like standard variant)
+
+This is especially useful for:
+- Pagination information in headers
+- Rate limiting headers
+- ETags for caching
+- Custom API metadata
+:::
 
 ## Generated Raw Composables
 
 For each operation, two composables are generated:
 
 ```typescript
-// Standard
+// Standard - returns only data
 export function useAsyncDataGetPets(key: string, params?: {}) {
   return useApiAsyncData<Pet[]>(key, '/pets', { method: 'GET' })
 }
 
-// Raw (adds "Raw" suffix)
+// Raw (adds "Raw" suffix) - returns full response
 export function useAsyncDataGetPetsRaw(key: string, params?: {}) {
   return useApiAsyncDataRaw<Pet[]>(key, '/pets', { method: 'GET' })
 }
@@ -39,7 +55,7 @@ interface RawResponse<T> {
   status: number           // HTTP status code (200, 404, etc.)
   statusText: string       // Status text ("OK", "Not Found", etc.)
   headers: Headers         // Response headers
-  _data: T                 // Actual response data
+  data: T                  // Actual response data
 }
 ```
 
@@ -68,7 +84,7 @@ watch(response, (res) => {
   <div>
     <p>HTTP Status: {{ response?.status }}</p>
     <ul>
-      <li v-for="pet in response?._data" :key="pet.id">
+      <li v-for="pet in response?.data" :key="pet.id">
         {{ pet.name }}
       </li>
     </ul>
@@ -99,7 +115,7 @@ const rateLimit = computed(() => {
       Rate Limit: {{ rateLimit.remaining }} / {{ rateLimit.limit }}
     </p>
     <ul>
-      <li v-for="pet in response?._data" :key="pet.id">
+      <li v-for="pet in response?.data" :key="pet.id">
         {{ pet.name }}
       </li>
     </ul>
@@ -148,7 +164,7 @@ const prevPage = () => {
 <template>
   <div>
     <ul>
-      <li v-for="pet in response?._data" :key="pet.id">
+      <li v-for="pet in response?.data" :key="pet.id">
         {{ pet.name }}
       </li>
     </ul>
@@ -240,7 +256,7 @@ watch(rateLimitStatus, (status) => {
     </div>
     
     <ul>
-      <li v-for="pet in response?._data" :key="pet.id">
+      <li v-for="pet in response?.data" :key="pet.id">
         {{ pet.name }}
       </li>
     </ul>
@@ -262,7 +278,7 @@ const message = computed(() => {
   
   switch (response.value.status) {
     case 200:
-      return `Pet found: ${response.value._data.name}`
+      return `Pet found: ${response.value.data.name}`
     case 404:
       return 'Pet not found'
     case 403:
@@ -279,8 +295,8 @@ const message = computed(() => {
   <div>
     <p>{{ message }}</p>
     <div v-if="response?.status === 200">
-      <h1>{{ response._data.name }}</h1>
-      <p>Status: {{ response._data.status }}</p>
+      <h1>{{ response.data.name }}</h1>
+      <p>Status: {{ response.data.status }}</p>
     </div>
   </div>
 </template>
@@ -308,8 +324,8 @@ const isJson = computed(() => {
 <template>
   <div>
     <p>Content-Type: {{ contentType }}</p>
-    <img v-if="isImage" :src="response?._data" />
-    <pre v-else-if="isJson">{{ response?._data }}</pre>
+    <img v-if="isImage" :src="response?.data" />
+    <pre v-else-if="isJson">{{ response?.data }}</pre>
   </div>
 </template>
 ```
@@ -352,7 +368,7 @@ const { data: response } = useAsyncDataGetPetsRaw('pets')
 response.value?.status        // number
 response.value?.statusText    // string
 response.value?.headers       // Headers
-response.value?._data         // Pet[] (typed from OpenAPI)
+response.value?.data          // Pet[] (typed from OpenAPI)
 ```
 
 ## When to Use Raw Responses

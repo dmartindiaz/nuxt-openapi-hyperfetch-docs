@@ -6,23 +6,50 @@ Both `useFetch` and `useAsyncData` composables share powerful features that enha
 
 Generated composables include:
 
+- ✅ **Configuration File**: Configure base URL and generation options
 - ✅ **Lifecycle Callbacks**: Execute code at different request stages
 - ✅ **Global Callbacks**: Define callbacks once, apply everywhere
+- ✅ **Global Headers**: Set headers globally (auth tokens, API keys)
+- ✅ **Pick Fields**: Select specific response fields with dot notation
 - ✅ **Request Interception**: Modify requests before sending
-- ✅ **Data Transformation**: Transform response data with `transform` and `pick`
 - ✅ **Authentication**: Built-in auth token and error handling patterns
 - ✅ **Error Handling**: Centralized error management
 
 ## Features Comparison
 
-| Feature | useFetch | useAsyncData | Description |
-|---------|----------|--------------|-------------|
-| **Callbacks** | ✅ Full | ✅ Full | onRequest, onSuccess, onError, onFinish |
-| **Global Callbacks** | ✅ Full | ✅ Full | Plugin-based global callbacks |
-| **Request Interception** | ✅ Full | ✅ Full | Modify headers, body, query |
-| **Data Transformation** | ✅ Full | ✅ Full | Transform response data |
-| **Authentication** | ✅ Full | ✅ Full | Auth patterns with callbacks |
-| **Error Handling** | ✅ Full | ✅ Full | Centralized error management |
+| Feature | useFetch | useAsyncData | Source |
+|---------|----------|--------------|--------|
+| **Configuration File** | ✅ Full | ✅ Full | CLI adds |
+| **Callbacks** | ✅ Full | ✅ Full | CLI adds |
+| **Global Callbacks** | ✅ Full | ✅ Full | CLI adds |
+| **Global Headers** | ✅ Full | ✅ Full | CLI adds |
+| **Pick Fields** | ✅ Full | ✅ Full | CLI adds |
+| **Request Interception** | ✅ Full | ✅ Full | CLI adds |
+| **Type Safety** | ✅ Full | ✅ Full | CLI adds (from OpenAPI) |
+| **Authentication** | ✅ Full | ✅ Full | Pattern using CLI callbacks |
+| **Error Handling** | ✅ Full | ✅ Full | Pattern using CLI callbacks |
+
+## Configuration File
+
+Configure the CLI behavior with `nxh.config.js` in your project root.
+
+### Basic Configuration
+
+```javascript
+// nxh.config.js
+export default {
+  input: './openapi.yaml',
+  output: './composables',
+  baseUrl: 'https://api.example.com',
+  generators: ['useFetch', 'useAsyncData']
+}
+```
+
+::: tip CLI Feature
+The configuration file is specific to the CLI. It controls code generation and sets the base URL for client composables (useFetch and useAsyncData only).
+:::
+
+[Learn more about configuration →](/composables/features/configuration)
 
 ## Callbacks
 
@@ -64,10 +91,14 @@ Define callbacks once in a plugin, apply them to all requests automatically.
 export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
-      // Add auth token to ALL requests
       const token = useCookie('auth-token').value
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${token}`
+          }
+        }
       }
     },
     onError: (error) => {
@@ -84,6 +115,58 @@ Now every API request automatically includes the auth token and handles 401 erro
 
 [Learn more about global callbacks →](/composables/features/global-callbacks/overview)
 
+## Global Headers
+
+Set headers globally for all API requests using `useApiHeaders()` composable.
+
+### Composable Method
+
+```typescript
+// composables/useApiHeaders.ts
+export const useApiHeaders = () => {
+  const authToken = useCookie('auth-token')
+  
+  return computed(() => ({
+    'Authorization': authToken.value ? `Bearer ${authToken.value}` : '',
+    'X-Client-Version': '1.0.0'
+  }))
+}
+```
+
+All API requests automatically include these headers. Global headers merge with request-specific headers.
+
+::: tip CLI Feature
+Global headers are a CLI-specific feature that work with both `useFetch` and `useAsyncData` composables.
+:::
+
+[Learn more about global headers →](/composables/features/global-headers)
+
+## Pick Fields
+
+Select specific fields from API responses using the `pick` option with dot notation support.
+
+### Basic Usage
+
+```typescript
+// Pick specific fields
+const { data } = useFetchGetUser({ id: 1 }, {
+  pick: ['id', 'name', 'email'] as const
+})
+// data: { id: number, name: string, email: string }
+
+// Pick nested fields with dot notation
+const { data } = useFetchGetUser({ id: 1 }, {
+  pick: ['profile.name', 'profile.avatar', 'status'] as const
+})
+// data: { profile: { name: string, avatar: string }, status: string }
+```
+
+::: tip CLI Feature
+The `pick` option is a CLI-specific feature that reduces data transfer and improves performance. It works with both `useFetch` and `useAsyncData` composables.
+:::
+
+[Learn more about pick fields →](/composables/features/pick)
+
 ## Request Interception
 
 Modify requests before they're sent using `onRequest`.
@@ -91,45 +174,27 @@ Modify requests before they're sent using `onRequest`.
 ```typescript
 useFetchGetUsers({}, {
   onRequest: ({ url, method, headers, body, query }) => {
-    // Modify headers
-    headers['X-Custom-Header'] = 'value'
-    headers['X-Request-ID'] = crypto.randomUUID()
-    
-    // Modify query parameters
-    query.timestamp = Date.now()
-    query.version = 'v2'
-    
-    // Modify body (POST/PUT)
-    if (body) {
-      body.clientVersion = '1.0.0'
+    return {
+      headers: {
+        ...headers,
+        'X-Custom-Header': 'value',
+        'X-Request-ID': crypto.randomUUID()
+      },
+      query: {
+        ...query,
+        timestamp: Date.now(),
+        version: 'v2'
+      },
+      body: body ? {
+        ...body,
+        clientVersion: '1.0.0'
+      } : undefined
     }
-    
-    // Log for debugging
-    console.log(`[API] ${method} ${url}`)
   }
 })
 ```
 
 [Learn more about request interception →](/composables/features/request-interception)
-
-## Data Transformation
-
-Transform response data before it's returned (useAsyncData only).
-
-```typescript
-// Transform to simpler structure
-const { data: petNames } = useAsyncDataGetPets(
-  'pet-names',
-  {},
-  {
-    transform: (pets) => pets.map(pet => pet.name)
-  }
-)
-
-// data is now string[] instead of Pet[]
-```
-
-[Learn more about data transformation →](/composables/features/data-transformation)
 
 ## Authentication
 
@@ -199,23 +264,60 @@ export default defineNuxtPlugin(() => {
 
 ## Feature Architecture
 
-```mermaid
-graph TD
-    A[Component] --> B[Generated Composable]
-    B --> C[Local Callbacks]
-    C --> D[Global Callbacks]
-    D --> E[Request Interception]
-    E --> F[Nuxt Composable]
-    F --> G[API]
-    G --> H[Response]
-    H --> I[Data Transformation]
-    I --> J[Success/Error Callbacks]
-    J --> A
-    
-    style C fill:#e1f5ff
-    style D fill:#fff3e0
-    style E fill:#f3e5f5
-    style I fill:#e8f5e9
+```
+         ┌─────────────────────────────────────────────────────┐
+         │                                                     │
+         ▼                                                     │
+  ┌────────────┐                                              │
+  │ Component  │                                              │
+  └──────┬─────┘                                              │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │Generated Composable  │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │  Local Callbacks     │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │  Global Callbacks    │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │Request Interception  │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │  Nuxt Composable     │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │       API            │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │     Response         │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │Data Transformation   │                                    │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         ▼                                                     │
+  ┌──────────────────────┐                                    │
+  │Success/Error Callbacks│                                   │
+  └──────┬───────────────┘                                    │
+         │                                                     │
+         └─────────────────────────────────────────────────────┘
 ```
 
 ## Next Steps

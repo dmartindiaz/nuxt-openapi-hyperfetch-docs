@@ -19,7 +19,7 @@ Generated `useFetch` composables provide:
 For an OpenAPI endpoint like this:
 
 ```yaml
-/pets/{petId}:
+/pet/{petId}:
   get:
     operationId: getPetById
     parameters:
@@ -28,26 +28,30 @@ For an OpenAPI endpoint like this:
         required: true
         schema:
           type: integer
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
 ```
 
 The generator creates:
 
 ```typescript
+// Generated: composables/useFetchGetPetById.ts
 export function useFetchGetPetById(
-  params: { petId: number },
-  options?: ApiRequestOptions<Pet>
+  params: { petId: number },         // ✅ Type-safe from OpenAPI
+  options?: ApiRequestOptions<Pet>   // ✅ Includes CLI callbacks
 ) {
-  return useApiRequest<Pet>('/pets/{petId}', {
+  return useApiRequest<Pet>(`/pet/${params.petId}`, {
     method: 'GET',
-    pathParams: params,
     ...options
   })
 }
 ```
 
 ## Basic Usage
-
-### Simple GET Request
 
 ```vue
 <script setup lang="ts">
@@ -63,70 +67,12 @@ const { data: pet, pending, error, refresh } = useFetchGetPetById({ petId: 123 }
 </template>
 ```
 
-### With Query Parameters
+::: tip Nuxt useFetch Reference
+Generated composables wrap Nuxt's `useFetch`, returning `{ data, pending, error, refresh, execute, status }`.
 
-```typescript
-const { data: pets } = useFetchGetPets({
-  status: 'available',
-  limit: 10
-})
-```
-
-### With Request Body (POST/PUT)
-
-```typescript
-const { data: newPet, execute } = useFetchCreatePet(
-  {
-    body: {
-      name: 'Fluffy',
-      status: 'available'
-    }
-  },
-  {
-    immediate: false // Don't execute on mount
-  }
-)
-
-// Execute manually (e.g., on form submit)
-const handleSubmit = async () => {
-  await execute()
-}
-```
-
-## Return Values
-
-All `useFetch` composables return the same interface as Nuxt's `useFetch`:
-
-```typescript
-interface UseFetchReturn<T> {
-  data: Ref<T | null>          // Response data
-  pending: Ref<boolean>         // Loading state
-  error: Ref<Error | null>      // Error object
-  refresh: () => Promise<void>  // Re-execute request
-  execute: () => Promise<void>  // Manual execution (if immediate: false)
-  status: Ref<string>           // 'idle' | 'pending' | 'success' | 'error'
-}
-```
-
-### Example Usage
-
-```vue
-<script setup lang="ts">
-const { data, pending, error, refresh } = useFetchGetPet({ petId: 123 })
-
-// Refresh data manually
-const handleRefresh = () => {
-  refresh()
-}
-
-// Watch for changes
-watch(data, (newPet) => {
-  if (newPet) {
-    console.log('Pet updated:', newPet.name)
-  }
-})
-</script>
-```
+For complete documentation on return values and standard options, see:
+**[Nuxt useFetch Documentation →](https://nuxt.com/docs/api/composables/use-fetch)**
+:::
 
 ## When to Use
 

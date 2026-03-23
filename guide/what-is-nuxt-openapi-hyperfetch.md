@@ -17,15 +17,39 @@ This is tedious, error-prone, and doesn't scale well as APIs grow.
 
 Nuxt OpenAPI Hyperfetch solves this by:
 
-```mermaid
-graph LR
-    A[OpenAPI Spec] --> B[Nuxt OpenAPI Hyperfetch]
-    B --> C[Type-Safe Composables]
-    B --> D[TypeScript Types]
-    B --> E[Server Routes]
-    C --> F[Your Nuxt App]
-    D --> F
-    E --> F
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     📄 OpenAPI Specification                        │
+│                      Describe tu API REST                           │
+└──────────────────────┬──────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                  ⚡ Nuxt OpenAPI Hyperfetch CLI                     │
+└──┬────────────────┬─────────────────┬─────────────────┬────────────┘
+   │                │                 │                 │
+   │                │                 │                 │
+   ▼                ▼                 ▼                 ▼
+┌──────────┐  ┌──────────┐  ┌───────────────┐  ┌──────────────────┐
+│ useFetch │  │useAsync  │  │ nuxt-server   │  │  TypeScript      │
+│Composable│  │Composable│  │ Server Routes │  │     Types        │
+│          │  │          │  │   /api/*      │  │  Pet, User...    │
+│  Forms   │  │ Complex  │  │   (BFF)       │  │                  │
+│and simple│  │  logic   │  │  (optional)   │  │  Auto-generated  │
+│  calls   │  │          │  │               │  │                  │
+└─────┬────┘  └─────┬────┘  └───────┬───────┘  └────────┬─────────┘
+      │             │               │                    │
+      │             │               │                    │ (tipado)
+      └─────────────┴───────────────┴────────────────────┘
+                                    │
+                                    ▼
+              ┌─────────────────────────────────────────┐
+              │      ✨ Your Nuxt Application          │
+              ├─────────────────────────────────────────┤
+              │  ✅ Type-safe                          │
+              │  ✅ SSR Ready                          │
+              │  ✅ Callbacks (onSuccess, onError...)  │
+              └─────────────────────────────────────────┘
 ```
 
 ### Key Features
@@ -77,9 +101,10 @@ useFetchGetPetById(
       // When request fails (400+, network error)
       showToast('Failed to load pet', 'error')
     },
-    onFinish: () => {
+    onFinish: ({ success }) => {
       // Always runs (success or failure)
       hideLoadingSpinner()
+      console.log('Request finished:', success ? 'success' : 'failed')
     }
   }
 )
@@ -141,21 +166,47 @@ Choose the pattern that fits your needs:
 
 ## How It Works
 
-```mermaid
-graph TD
-    A[1. Parse OpenAPI] --> B[2. Extract Endpoints]
-    B --> C[3. Generate Types]
-    C --> D[4. Create Composables]
-    D --> E[5. Copy Runtime Files]
-    E --> F[6. Ready to Use]
 ```
-
-1. **Parse OpenAPI**: Reads your `swagger.yaml` or `openapi.json`
-2. **Extract Endpoints**: Identifies all operations (GET, POST, etc.)
-3. **Generate Types**: Creates TypeScript interfaces from schemas
-4. **Create Composables**: Generates wrapper functions for each endpoint
-5. **Copy Runtime Files**: Includes helper functions for callbacks
-6. **Ready to Use**: Import and use in your Nuxt app
+┌──────────────────────────────────────────────────────────────────┐
+│  📄 PASO 1: Parse OpenAPI                                       │
+│  Lee swagger.yaml o openapi.json                                │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  🔍 PASO 2: Extract Endpoints                                    │
+│  Identifica todas las operaciones                                │
+│  GET, POST, PUT, DELETE, PATCH                                   │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  📦 PASO 3: Generate Types                                       │
+│  Create TypeScript interfaces                                    │
+│  from schemas and components                                     │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  ⚙️  PASO 4: Create Composables                                  │
+│  Generate wrapper functions                                      │
+│  useFetch* or useAsync* for each endpoint                        │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  📋 PASO 5: Copy Runtime Files                                   │
+│  Include helpers for callbacks                                   │
+│  and global configuration                                        │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+                          ▼
+╔══════════════════════════════════════════════════════════════════╗
+║  ✅ STEP 6: Ready to Use!                                        ║
+║  Import and use in your Nuxt app                                 ║
+║  with full type safety                                           ║
+╚══════════════════════════════════════════════════════════════════╝
+```
 
 ## What Gets Generated?
 

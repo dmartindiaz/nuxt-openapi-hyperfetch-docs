@@ -13,14 +13,24 @@ Authentication can be implemented at two levels:
 // Local
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${token}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
   }
 })
 
 // Global (recommended)
 useGlobalCallbacks({
   onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${token}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
   }
 })
 ```
@@ -36,7 +46,12 @@ const token = useCookie('auth-token')
 const { data: pets } = useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     if (token.value) {
-      headers['Authorization'] = `Bearer ${token.value}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${token.value}`
+        }
+      }
     }
   }
 })
@@ -53,7 +68,12 @@ export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
       if (token.value) {
-        headers['Authorization'] = `Bearer ${token.value}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${token.value}`
+          }
+        }
       }
     }
   })
@@ -71,7 +91,12 @@ export default defineNuxtPlugin(() => {
   
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
-      headers['X-API-Key'] = config.public.apiKey
+      return {
+        headers: {
+          ...headers,
+          'X-API-Key': config.public.apiKey
+        }
+      }
     }
   })
 })
@@ -83,7 +108,12 @@ export default defineNuxtPlugin(() => {
 useGlobalCallbacks({
   onRequest: ({ query }) => {
     const config = useRuntimeConfig()
-    query.api_key = config.public.apiKey
+    return {
+      query: {
+        ...query,
+        api_key: config.public.apiKey
+      }
+    }
   }
 })
 ```
@@ -110,7 +140,12 @@ const refreshAccessToken = async () => {
 useGlobalCallbacks({
   onRequest: ({ headers }) => {
     if (token.value) {
-      headers['Authorization'] = `Bearer ${token.value}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${token.value}`
+        }
+      }
     }
   },
   onError: async (error, { refresh }) => {
@@ -152,7 +187,12 @@ const refreshToken = async () => {
 const { data, refresh } = useFetchGetPets({}, {
   onRequest: ({ headers }) => {
     if (token.value) {
-      headers['Authorization'] = `Bearer ${token.value}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${token.value}`
+        }
+      }
     }
   },
   onError: async (error) => {
@@ -174,7 +214,12 @@ const credentials = btoa(`${username}:${password}`)
 
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    headers['Authorization'] = `Basic ${credentials}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Basic ${credentials}`
+      }
+    }
   }
 })
 ```
@@ -189,7 +234,12 @@ export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
       if (accessToken.value) {
-        headers['Authorization'] = `Bearer ${accessToken.value}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${accessToken.value}`
+          }
+        }
       }
     }
   })
@@ -203,7 +253,12 @@ export default defineNuxtPlugin(() => {
 ```typescript
 useFetchGetPets({}, {
   onRequest: ({ headers }) => {
-    headers['X-Auth-Token'] = useCookie('custom-token').value
+    return {
+      headers: {
+        ...headers,
+        'X-Auth-Token': useCookie('custom-token').value
+      }
+    }
   }
 })
 ```
@@ -216,8 +271,13 @@ useGlobalCallbacks({
     const userId = useCookie('user-id').value
     const sessionId = useCookie('session-id').value
     
-    headers['X-User-ID'] = userId
-    headers['X-Session-ID'] = sessionId
+    return {
+      headers: {
+        ...headers,
+        'X-User-ID': userId,
+        'X-Session-ID': sessionId
+      }
+    }
   }
 })
 ```
@@ -235,7 +295,12 @@ useGlobalCallbacks({
     if (!isPublic) {
       const token = useCookie('auth-token').value
       if (token) {
-        headers['Authorization'] = `Bearer ${token}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${token}`
+          }
+        }
       }
     }
   }
@@ -248,11 +313,19 @@ useGlobalCallbacks({
 useGlobalCallbacks({
   onRequest: ({ headers, url }) => {
     if (url.includes('/api/admin')) {
-      // Admin token
-      headers['Authorization'] = `Bearer ${useCookie('admin-token').value}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${useCookie('admin-token').value}`
+        }
+      }
     } else if (url.includes('/api/user')) {
-      // User token
-      headers['Authorization'] = `Bearer ${useCookie('user-token').value}`
+      return {
+        headers: {
+          ...headers,
+          'Authorization': `Bearer ${useCookie('user-token').value}`
+        }
+      }
     }
   }
 })
@@ -269,12 +342,22 @@ export default defineNuxtPlugin(() => {
     onRequest: ({ headers }) => {
       if (process.dev) {
         // Development: Use test token
-        headers['Authorization'] = 'Bearer test-token'
+        return {
+          headers: {
+            ...headers,
+            'Authorization': 'Bearer test-token'
+          }
+        }
       } else {
         // Production: Use real token
         const token = useCookie('auth-token').value
         if (token) {
-          headers['Authorization'] = `Bearer ${token}`
+          return {
+            headers: {
+              ...headers,
+              'Authorization': `Bearer ${token}`
+            }
+          }
         }
       }
     }
@@ -292,7 +375,12 @@ export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
       if (sessionId.value) {
-        headers['X-Session-ID'] = sessionId.value
+        return {
+          headers: {
+            ...headers,
+            'X-Session-ID': sessionId.value
+          }
+        }
       }
     }
   })
@@ -318,7 +406,12 @@ useGlobalCallbacks({
     
     if (token) {
       if (verifyToken(token)) {
-        headers['Authorization'] = `Bearer ${token}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${token}`
+          }
+        }
       } else {
         // Token expired, redirect to login
         navigateTo('/login')
@@ -336,12 +429,12 @@ useGlobalCallbacks({
     const tenantId = useCookie('tenant-id').value
     const token = useCookie('auth-token').value
     
-    if (tenantId) {
-      headers['X-Tenant-ID'] = tenantId
-    }
-    
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
+    return {
+      headers: {
+        ...headers,
+        ...(tenantId && { 'X-Tenant-ID': tenantId }),
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
     }
   }
 })
@@ -383,7 +476,12 @@ export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
       if (token.value) {
-        headers['Authorization'] = `Bearer ${token.value}`
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${token.value}`
+          }
+        }
       }
     },
     onError: async (error, { refresh: refreshRequest }) => {
@@ -407,15 +505,14 @@ export default defineNuxtPlugin(() => {
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
       if (user.token) {
-        headers['Authorization'] = `Bearer ${user.token}`
-      }
-      
-      if (user.role) {
-        headers['X-User-Role'] = user.role
-      }
-      
-      if (user.permissions) {
-        headers['X-Permissions'] = user.permissions.join(',')
+        return {
+          headers: {
+            ...headers,
+            'Authorization': `Bearer ${user.token}`,
+            ...(user.role && { 'X-User-Role': user.role }),
+            ...(user.permissions && { 'X-Permissions': user.permissions.join(',') })
+          }
+        }
       }
     }
   })
@@ -431,13 +528,14 @@ export default defineNuxtPlugin(() => {
   
   useGlobalCallbacks({
     onRequest: ({ headers }) => {
-      // Gateway API key
-      headers['X-Gateway-Key'] = config.public.gatewayKey
-      
-      // User token (if authenticated)
       const userToken = useCookie('auth-token').value
-      if (userToken) {
-        headers['Authorization'] = `Bearer ${userToken}`
+      
+      return {
+        headers: {
+          ...headers,
+          'X-Gateway-Key': config.public.gatewayKey,
+          ...(userToken && { 'Authorization': `Bearer ${userToken}` })
+        }
       }
     }
   })
@@ -457,7 +555,15 @@ const token = useCookie('auth-token', {
 })
 
 // ✅ Use environment variables for API keys
-headers['X-API-Key'] = useRuntimeConfig().public.apiKey
+const config = useRuntimeConfig()
+onRequest: ({ headers }) => {
+  return {
+    headers: {
+      ...headers,
+      'X-API-Key': config.public.apiKey
+    }
+  }
+}
 
 // ✅ Verify token expiration
 if (isTokenExpired(token.value)) {
@@ -476,7 +582,14 @@ const logout = () => {
 
 ```typescript
 // ❌ Don't hardcode tokens
-headers['Authorization'] = 'Bearer hardcoded-token'
+onRequest: ({ headers }) => {
+  return {
+    headers: {
+      ...headers,
+      'Authorization': 'Bearer hardcoded-token' // ❌ Never do this!
+    }
+  }
+}
 
 // ❌ Don't store sensitive tokens in localStorage
 localStorage.setItem('token', token)  // Use httpOnly cookies!
@@ -499,7 +612,12 @@ onRequest: ({ headers }) => {
   console.log('Token:', token ? 'EXISTS' : 'MISSING')
   
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token}`
+      }
+    }
   }
 }
 ```
@@ -511,7 +629,12 @@ onRequest: ({ headers }) => {
 useFetchGetPets({}, {
   credentials: 'include',  // Send cookies
   onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${token.value}`
+    return {
+      headers: {
+        ...headers,
+        'Authorization': `Bearer ${token.value}`
+      }
+    }
   }
 })
 ```

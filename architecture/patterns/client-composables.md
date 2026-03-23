@@ -156,8 +156,9 @@ const { execute } = useCreatePet({
   onRequest: () => {
     globalLoading.value = true
   },
-  onFinish: () => {
+  onFinish: ({ success }) => {
     globalLoading.value = false
+    console.log('Request finished:', success ? 'success' : 'failed')
   }
 })
 ```

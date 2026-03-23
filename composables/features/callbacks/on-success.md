@@ -68,29 +68,6 @@ useFetchCreatePet(
 )
 ```
 
-### Reset Form
-
-```vue
-<script setup lang="ts">
-const form = ref({
-  name: '',
-  status: 'available'
-})
-
-const { execute: submit } = useFetchCreatePet(
-  { body: form.value },
-  {
-    immediate: false,
-    onSuccess: (pet) => {
-      showToast(`Created: ${pet.name}`, 'success')
-      // Reset form
-      form.value = { name: '', status: 'available' }
-    }
-  }
-)
-</script>
-```
-
 ### Refresh Related Data
 
 ```vue
@@ -109,30 +86,6 @@ const { execute: deletePet } = useFetchDeletePet(
   }
 )
 </script>
-```
-
-### Track Analytics
-
-```typescript
-useFetchGetPets({}, {
-  onSuccess: (pets) => {
-    trackEvent('pets_loaded', {
-      count: pets.length,
-      timestamp: Date.now()
-    })
-  }
-})
-```
-
-### Cache Data Locally
-
-```typescript
-useFetchGetPets({}, {
-  onSuccess: (pets) => {
-    // Store in localStorage
-    localStorage.setItem('cached-pets', JSON.stringify(pets))
-  }
-})
 ```
 
 ### Update UI State
@@ -216,46 +169,23 @@ useFetchGetPetById(
 
 ## Execution Order
 
-```mermaid
-graph LR
-    A[onRequest] --> B[HTTP Request]
-    B --> C{Status}
-    C -->|2xx| D[onSuccess]
-    C -->|4xx/5xx| E[onError]
-    D --> F[onFinish]
-    E --> F
-    
-    style D fill:#e8f5e9
+```
+   onRequest  →  HTTP Request  →  Status?
+                                    │
+                           ┌────────┴────────┐
+                           │                 │
+                      2xx Success       4xx/5xx Error
+                           │                 │
+                           ▼                 ▼
+                      onSuccess          onError
+                           │                 │
+                           └────────┬────────┘
+                                    │
+                                    ▼
+                                onFinish
 ```
 
 ## Complex Examples
-
-### Multi-Step Success Flow
-
-```typescript
-useFetchCreateOrder(
-  { body: orderData.value },
-  {
-    onSuccess: async (order) => {
-      // 1. Show success message
-      showToast('Order created!', 'success')
-      
-      // 2. Track analytics
-      await trackEvent('order_created', {
-        orderId: order.id,
-        total: order.total
-      })
-      
-      // 3. Update cart
-      const cartStore = useCartStore()
-      cartStore.clearCart()
-      
-      // 4. Navigate to confirmation
-      navigateTo(`/orders/${order.id}/confirmation`)
-    }
-  }
-)
-```
 
 ### Conditional Actions
 
@@ -278,26 +208,6 @@ useFetchUpdatePet(
     }
   }
 )
-```
-
-### Transform and Store
-
-```typescript
-const petsStore = usePetsStore()
-
-useFetchGetPets({}, {
-  onSuccess: (pets) => {
-    // Transform data
-    const enrichedPets = pets.map(pet => ({
-      ...pet,
-      displayName: `${pet.name} (#${pet.id})`,
-      isAvailable: pet.status === 'available'
-    }))
-    
-    // Store transformed data
-    petsStore.setPets(enrichedPets)
-  }
-})
 ```
 
 ## Best Practices
@@ -346,61 +256,6 @@ onSuccess: (data) => {
   }
 }
 ```
-
-## Integration with Reactive State
-
-```vue
-<script setup lang="ts">
-const pets = ref<Pet[]>([])
-const loading = ref(false)
-
-useFetchGetPets({}, {
-  onRequest: () => {
-    loading.value = true
-  },
-  onSuccess: (data) => {
-    pets.value = data
-  },
-  onFinish: () => {
-    loading.value = false
-  }
-})
-</script>
-
-<template>
-  <div v-if="loading">Loading...</div>
-  <ul v-else>
-    <li v-for="pet in pets" :key="pet.id">{{ pet.name }}</li>
-  </ul>
-</template>
-```
-
-## Global vs Local Success Callbacks
-
-### Global (runs for all requests)
-
-```typescript
-// plugins/api.ts
-useGlobalCallbacks({
-  onSuccess: (data) => {
-    // Log all successful requests
-    console.log('[API] Success:', data)
-  }
-})
-```
-
-### Local (runs for specific request)
-
-```typescript
-useFetchGetPets({}, {
-  onSuccess: (pets) => {
-    // Only for this request
-    showToast(`Loaded ${pets.length} pets`, 'success')
-  }
-})
-```
-
-Both callbacks run (global first, then local).
 
 ## Next Steps
 

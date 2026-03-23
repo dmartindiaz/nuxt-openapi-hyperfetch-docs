@@ -1,303 +1,132 @@
 # Server Route Structure
 
-Understanding the file-based routing system for Nuxt server routes and how nuxt-openapi-hyperfetch organizes generated API endpoints.
+How nuxt-openapi-hyperfetch maps your OpenAPI paths and HTTP methods to Nuxt server route files.
 
-## Nuxt Server Routes
+## File naming convention
 
-Nuxt uses file-based routing for server routes in the `/server` directory.
+The generator follows a deterministic naming rule:
 
-### Basic Structure
+- The **HTTP method** becomes the file extension: `.get.ts`, `.post.ts`, `.put.ts`, `.delete.ts`
+- A **literal path segment** at the end becomes the filename: `findByStatus.get.ts`
+- A **path parameter** at the end creates a `[param]/index.{method}.ts` folder
+- A **root-level path** (`/pet`) creates `pet.{method}.ts` directly under `server/api/`
 
-```
-server/
-├── api/              ← API routes
-├── routes/           ← Server routes
-├── middleware/       ← Server middleware
-└── utils/            ← Server utilities
-```
+### Examples
 
-## API Routes (Generated)
+| OpenAPI path | Method | Generated file |
+|---|---|---|
+| `/pet` | POST | `pet.post.ts` |
+| `/pet` | PUT | `pet.put.ts` |
+| `/pet/findByStatus` | GET | `pet/findByStatus.get.ts` |
+| `/pet/{petId}` | GET | `pet/[pet]/index.get.ts` |
+| `/pet/{petId}` | DELETE | `pet/[pet]/index.delete.ts` |
+| `/pet/{petId}/uploadImage` | POST | `pet/[pet]/uploadImage.post.ts` |
+| `/store/order` | POST | `store/order.post.ts` |
+| `/store/order/{orderId}` | GET | `store/order/[order]/index.get.ts` |
+| `/user/{username}` | PUT | `user/[username]/index.put.ts` |
 
-### File Naming Convention
+### Parameter name simplification
 
-```
-server/api/
-├── pets/
-│   ├── index.get.ts        ← GET /api/pets
-│   ├── index.post.ts       ← POST /api/pets
-│   └── [id]/
-│       ├── index.get.ts    ← GET /api/pets/:id
-│       ├── index.put.ts    ← PUT /api/pets/:id
-│       └── index.delete.ts ← DELETE /api/pets/:id
-```
+OpenAPI path parameters with an `id` suffix are simplified: `{petId}` → `[pet]`, `{orderId}` → `[order]`. Parameters without the suffix keep their name: `{username}` → `[username]`.
 
-### HTTP Method Mapping
+## Real example — Petstore
 
-| File | Route | Method |
-|------|-------|--------|
-| `index.get.ts` | `/api/pets` | GET |
-| `index.post.ts` | `/api/pets` | POST |
-| `[id]/index.get.ts` | `/api/pets/:id` | GET |
-| `[id]/index.put.ts` | `/api/pets/:id` | PUT |
-| `[id]/index.patch.ts` | `/api/pets/:id` | PATCH |
-| `[id]/index.delete.ts` | `/api/pets/:id` | DELETE |
-
-## Path Parameters
-
-### Dynamic Routes
+Given the standard Petstore OpenAPI spec, the generator produces:
 
 ```
 server/api/
-└── pets/
-    └── [id]/
-        └── index.get.ts
+├── _routes.ts                         ← route index (auto-generated, do not edit)
+├── pet.post.ts                        ← POST /pet
+├── pet.put.ts                         ← PUT /pet
+├── pet/
+│   ├── findByStatus.get.ts            ← GET /pet/findByStatus
+│   ├── findByTags.get.ts              ← GET /pet/findByTags
+│   └── [pet]/
+│       ├── index.get.ts               ← GET /pet/:pet
+│       ├── index.post.ts              ← POST /pet/:pet
+│       ├── index.delete.ts            ← DELETE /pet/:pet
+│       └── uploadImage.post.ts        ← POST /pet/:pet/uploadImage
+├── store/
+│   ├── inventory.get.ts               ← GET /store/inventory
+│   ├── order.post.ts                  ← POST /store/order
+│   └── order/
+│       └── [order]/
+│           ├── index.get.ts           ← GET /store/order/:order
+│           └── index.delete.ts        ← DELETE /store/order/:order
+└── user/
+    ├── user.post.ts                   ← POST /user
+    ├── createWithList.post.ts         ← POST /user/createWithList
+    ├── login.get.ts                   ← GET /user/login
+    ├── logout.get.ts                  ← GET /user/logout
+    └── [username]/
+        ├── index.get.ts               ← GET /user/:username
+        ├── index.put.ts               ← PUT /user/:username
+        └── index.delete.ts            ← DELETE /user/:username
 ```
+
+## What the generated routes look like
+
+### Route with query parameters
 
 ```typescript
-// Accessible as: GET /api/pets/123
-export default defineEventHandler((event) => {
-  const id = getRouterParam(event, 'id')
-  // id = "123"
-  
-  return fetchPet(parseInt(id))
-})
-```
+// server/api/pet/findByStatus.get.ts  (auto-generated)
+import { defineEventHandler, createError, getQuery } from 'h3'
+import type { FindPetsByStatusRequest, Pet } from '~/swagger'
 
-### Multiple Parameters
-
-```
-server/api/
-└── pets/
-    └── [id]/
-        └── photos/
-            └── [photoId]/
-                └── index.get.ts
-```
-
-```typescript
-// Accessible as: GET /api/pets/123/photos/456
-export default defineEventHandler((event) => {
-  const id = getRouterParam(event, 'id')        // "123"
-  const photoId = getRouterParam(event, 'photoId')  // "456"
-  
-  return fetchPetPhoto(parseInt(id), parseInt(photoId))
-})
-```
-
-### Catch-all Routes
-
-```
-server/api/
-└── [...slug].ts
-```
-
-```typescript
-// Matches: /api/anything/here/works
-export default defineEventHandler((event) => {
-  const slug = getRouterParam(event, 'slug')
-  // slug = "anything/here/works"
-})
-```
-
-## Generated Structure Example
-
-### From OpenAPI
-
-```yaml
-# swagger.yaml
-paths:
-  /pets:
-    get:
-      operationId: getPets
-    post:
-      operationId: createPet
-  /pets/{id}:
-    get:
-      operationId: getPet
-    put:
-      operationId: updatePet
-    delete:
-      operationId: deletePet
-  /pets/{id}/photos:
-    get:
-      operationId: getPetPhotos
-```
-
-### Generated Files
-
-```
-server/api/
-└── pets/
-    ├── index.get.ts           ← GET /pets
-    ├── index.post.ts          ← POST /pets
-    └── [id]/
-        ├── index.get.ts       ← GET /pets/:id
-        ├── index.put.ts       ← PUT /pets/:id
-        ├── index.delete.ts    ← DELETE /pets/:id
-        └── photos/
-            └── index.get.ts   ← GET /pets/:id/photos
-```
-
-## Route File Template
-
-### Basic Route
-
-```typescript
-// server/api/pets/index.get.ts
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  
-  // 1. Verify authentication
-  const user = await verifyAuth(event)
-  
-  // 2. Get query parameters
+export default defineEventHandler(async (event): Promise<Pet[]> => {
   const query = getQuery(event)
-  
-  // 3. Call backend
-  const pets = await $fetch(`${config.backendUrl}/pets`, {
+
+  const { getAuthContext } = await import('~/server/auth/context')
+  const auth = await getAuthContext(event)
+
+  const config = useRuntimeConfig()
+  const data = await $fetch<Pet[]>(`${config.apiBaseUrl}/pet/findByStatus`, {
     query,
     headers: {
-      'X-API-Key': config.backendApiKey,
-      'X-User-ID': user.id.toString()
-    }
-  })
-  
-  // 4. Transform response
-  return transformPetsForUser(pets, user)
-})
-```
-
-### With Path Parameters
-
-```typescript
-// server/api/pets/[id]/index.get.ts
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const user = await verifyAuth(event)
-  
-  // Extract path parameter
-  const id = getRouterParam(event, 'id')
-  
-  const pet = await $fetch(`${config.backendUrl}/pets/${id}`, {
-    headers: {
-      'X-API-Key': config.backendApiKey,
-      'X-User-ID': user.id.toString()
-    }
-  })
-  
-  return transformPet(pet, user)
-})
-```
-
-### With Request Body
-
-```typescript
-// server/api/pets/index.post.ts
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const user = await verifyAuth(event)
-  
-  // Read request body
-  const body = await readBody(event)
-  
-  // Validate
-  if (!body.name) {
-    throw createError({
-      statusCode: 400,
-      message: 'Name is required'
-    })
-  }
-  
-  // Call backend
-  const pet = await $fetch(`${config.backendUrl}/pets`, {
-    method: 'POST',
-    body: {
-      ...body,
-      ownerId: user.id
+      ...(config.apiSecret ? { Authorization: `Bearer ${config.apiSecret}` } : {}),
     },
-    headers: {
-      'X-API-Key': config.backendApiKey
-    }
   })
-  
-  return transformPet(pet, user)
+
+  const { transformPet } = await import('~/server/bff/transformers/pet')
+  return transformPet(data, event, auth)
 })
 ```
 
-## Middleware
-
-### Global Middleware
+### Route with request body
 
 ```typescript
-// server/middleware/auth.ts
-export default defineEventHandler(async (event) => {
-  // Skip auth for public endpoints
-  if (event.path.startsWith('/api/public')) {
-    return
-  }
-  
-  // Verify auth for all other routes
-  await verifyAuth(event)
+// server/api/pet.post.ts  (auto-generated)
+import { defineEventHandler, createError, readBody } from 'h3'
+import type { AddPetRequest, Pet } from '~/swagger'
+
+export default defineEventHandler(async (event): Promise<Pet> => {
+  const body = await readBody<AddPetRequest>(event)
+
+  const { getAuthContext } = await import('~/server/auth/context')
+  const auth = await getAuthContext(event)
+
+  const config = useRuntimeConfig()
+  const data = await $fetch<Pet>(`${config.apiBaseUrl}/pet`, {
+    method: 'POST',
+    body,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(config.apiSecret ? { Authorization: `Bearer ${config.apiSecret}` } : {}),
+    },
+  })
+
+  const { transformPet } = await import('~/server/bff/transformers/pet')
+  return transformPet(data, event, auth)
 })
 ```
 
-### Route-Specific Middleware
+## The `_routes.ts` file
 
-```typescript
-// server/middleware/admin.ts
-export default defineEventHandler(async (event) => {
-  // Only runs for /api/admin/* routes
-  if (event.path.startsWith('/api/admin')) {
-    const user = await verifyAuth(event)
-    
-    if (user.role !== 'admin') {
-      throw createError({
-        statusCode: 403,
-        message: 'Admin access required'
-      })
-    }
-  }
-})
-```
+`server/api/_routes.ts` is generated alongside the routes and serves as an audit index — it lists every route that was generated with its file path. It exports nothing and is never executed; it exists only as a reference.
 
-## Utilities Structure
+## Re-generation behaviour
 
-```
-server/utils/
-├── auth.ts              ← Authentication helpers
-├── transformers.ts      ← Data transformers
-├── api-client.ts        ← Backend API client
-├── validators.ts        ← Input validation
-└── helpers.ts           ← Common utilities
-```
-
-### Example Utilities
-
-```typescript
-// server/utils/auth.ts
-export async function verifyAuth(event: H3Event): Promise<AuthUser> {
-  // ...
-}
-
-export function requireRole(role: string) {
-  // ...
-}
-```
-
-```typescript
-// server/utils/transformers.ts
-export function transformPet(pet: any, user: AuthUser) {
-  // ...
-}
-
-export function transformPetCollection(pets: any[], user: AuthUser) {
-  // ...
-}
-```
-
-```typescript
-// server/utils/api-client.ts
-export async function callBackend<T>(
+All files under `server/api/` are **overwritten on every generation**. If you need to add custom logic to a route, do it in the transformer for that resource (`server/bff/transformers/{resource}.ts`) which is never overwritten. See [Transformers →](/server/transformers/)
   path: string,
   event: H3Event,
   options?: RequestInit

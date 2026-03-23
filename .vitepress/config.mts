@@ -17,8 +17,6 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/' },
       { text: 'Composables', link: '/composables/' },
       { text: 'Server', link: '/server/' },
-      { text: 'Examples', link: '/examples/composables/basic/simple-get' },
-      { text: 'API', link: '/api/' },
     ],
 
     sidebar: {
@@ -26,6 +24,7 @@ export default defineConfig({
         {
           text: 'Introduction',
           items: [
+            { text: 'Overview', link: '/guide/' },
             { text: 'What is Nuxt OpenAPI Hyperfetch?', link: '/guide/what-is-nuxt-openapi-hyperfetch' },
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Core Concepts', link: '/guide/core-concepts' },
@@ -69,6 +68,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/composables/features/' },
+            { text: 'Configuration File', link: '/composables/features/configuration' },
             {
               text: 'Callbacks',
               collapsed: true,
@@ -90,10 +90,10 @@ export default defineConfig({
                 { text: 'URL Patterns', link: '/composables/features/global-callbacks/patterns' },
               ],
             },
+            { text: 'Global Headers', link: '/composables/features/global-headers' },
+            { text: 'Pick Fields', link: '/composables/features/pick' },
             { text: 'Request Interception', link: '/composables/features/request-interception' },
-            { text: 'Data Transformation', link: '/composables/features/data-transformation' },
             { text: 'Authentication', link: '/composables/features/authentication' },
-            { text: 'Error Handling', link: '/composables/features/error-handling' },
           ],
         },
       ],
@@ -104,150 +104,23 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/server/' },
             { text: 'Getting Started', link: '/server/getting-started' },
+            { text: 'Route Structure', link: '/server/route-structure' },
           ],
         },
         {
-          text: 'BFF Pattern',
+          text: 'BFF Mode',
           items: [
-            { text: 'What is BFF?', link: '/server/bff-pattern/' },
-            { text: 'Architecture', link: '/server/bff-pattern/architecture' },
-            { text: 'Generated vs Custom', link: '/server/bff-pattern/generated-vs-custom' },
-            { text: 'Benefits', link: '/server/bff-pattern/benefits' },
-          ],
-        },
-        {
-          text: 'Auth Context',
-          items: [
-            { text: 'Overview', link: '/server/auth-context/' },
-            { text: 'Setup', link: '/server/auth-context/setup' },
-            { text: 'Integration', link: '/server/auth-context/integration' },
-            { text: 'Examples', link: '/server/auth-context/examples' },
+            { text: 'BFF Pattern', link: '/server/bff-pattern/' },
+            { text: 'Auth Context', link: '/server/auth-context/' },
           ],
         },
         {
           text: 'Transformers',
           items: [
             { text: 'What are Transformers?', link: '/server/transformers/' },
-            { text: 'Creating Transformers', link: '/server/transformers/creating' },
             { text: 'Permission Flags', link: '/server/transformers/permissions' },
             { text: 'Filtering Data', link: '/server/transformers/filtering' },
             { text: 'Combining Sources', link: '/server/transformers/combining' },
-          ],
-        },
-        {
-          text: 'Advanced',
-          items: [
-            { text: 'Route Structure', link: '/server/route-structure' },
-          ],
-        },
-      ],
-
-      '/examples/': [
-        {
-          text: 'Composables Examples',
-          items: [
-            {
-              text: 'Basic',
-              collapsed: false,
-              items: [
-                { text: 'Simple GET', link: '/examples/composables/basic/simple-get' },
-                { text: 'Path Parameters', link: '/examples/composables/basic/path-parameters' },
-                { text: 'Query Parameters', link: '/examples/composables/basic/query-parameters' },
-                { text: 'POST Request', link: '/examples/composables/basic/post-request' },
-              ],
-            },
-            {
-              text: 'Callbacks',
-              collapsed: true,
-              items: [
-                { text: 'Success Navigation', link: '/examples/composables/callbacks/success-navigation' },
-                { text: 'Error Toast', link: '/examples/composables/callbacks/error-toast' },
-                { text: 'Request Logging', link: '/examples/composables/callbacks/request-logging' },
-              ],
-            },
-            {
-              text: 'Global Callbacks',
-              collapsed: true,
-              items: [
-                { text: 'Auth Token', link: '/examples/composables/global-callbacks/auth-token' },
-                { text: 'Error Handling', link: '/examples/composables/global-callbacks/error-handling' },
-                { text: 'Analytics', link: '/examples/composables/global-callbacks/analytics' },
-                { text: 'Skip Patterns', link: '/examples/composables/global-callbacks/skip-patterns' },
-              ],
-            },
-            {
-              text: 'Advanced',
-              collapsed: true,
-              items: [
-                { text: 'Authentication Flow', link: '/examples/composables/advanced/authentication-flow' },
-                { text: 'File Upload', link: '/examples/composables/advanced/file-upload' },
-                { text: 'Pagination', link: '/examples/composables/advanced/pagination' },
-                { text: 'Caching', link: '/examples/composables/advanced/caching' },
-              ],
-            },
-          ],
-        },
-        {
-          text: 'Server Examples',
-          items: [
-            {
-              text: 'Basic BFF',
-              items: [
-                { text: 'Simple Route', link: '/examples/server/basic-bff/simple-route' },
-                { text: 'With Auth', link: '/examples/server/basic-bff/with-auth' },
-              ],
-            },
-            {
-              text: 'Transformers',
-              items: [
-                { text: 'Add Permissions', link: '/examples/server/transformers/add-permissions' },
-                { text: 'Filter Sensitive', link: '/examples/server/transformers/filter-sensitive' },
-                { text: 'Combine Sources', link: '/examples/server/transformers/combine-sources' },
-              ],
-            },
-            {
-              text: 'Auth Patterns',
-              items: [
-                { text: 'JWT Verification', link: '/examples/server/auth-patterns/jwt-verification' },
-                { text: 'Role-Based', link: '/examples/server/auth-patterns/role-based' },
-                { text: 'Session-Based', link: '/examples/server/auth-patterns/session-based' },
-              ],
-            },
-          ],
-        },
-      ],
-
-      '/api/': [
-        {
-          text: 'API Reference',
-          items: [
-            { text: 'Overview', link: '/api/' },
-            { text: 'CLI Commands', link: '/api/cli' },
-          ],
-        },
-        {
-          text: 'Interfaces',
-          items: [
-            { text: 'MethodInfo', link: '/api/interfaces/method-info' },
-            { text: 'Request Options', link: '/api/interfaces/request-options' },
-            { text: 'Callback Contexts', link: '/api/interfaces/callback-contexts' },
-            { text: 'Raw Response', link: '/api/interfaces/raw-response' },
-          ],
-        },
-        {
-          text: 'Parser',
-          items: [
-            { text: 'extractMethodInfo', link: '/api/parser/extract-method-info' },
-            { text: 'parseApiFile', link: '/api/parser/parse-api-file' },
-            { text: 'scanApiFiles', link: '/api/parser/scan-api-files' },
-          ],
-        },
-        {
-          text: 'Runtime',
-          items: [
-            { text: 'useApiRequest', link: '/api/runtime/use-api-request' },
-            { text: 'useApiAsyncData', link: '/api/runtime/use-api-async-data' },
-            { text: 'useApiAsyncDataRaw', link: '/api/runtime/use-api-async-data-raw' },
           ],
         },
       ],
@@ -346,5 +219,7 @@ export default defineConfig({
       message: 'Released under the Apache-2.0 License.',
       copyright: 'Copyright © 2026-present',
     },
+
+    
   },
 });

@@ -115,21 +115,81 @@ const { data: pets, pending, error } = useFetchGetPets()
 
 ## Generated Files Structure
 
-After generation, your output directory will contain:
+### For useFetch and useAsyncData Generators
+
+Composables are generated **inside your `output` directory**, alongside the OpenAPI-generated files:
 
 ```
-composables/api/
-├── index.ts                    # Main entry point, exports all composables
-├── types.d.ts                  # Generated TypeScript types from schemas
-├── runtime/                    # Helper functions (copied, not imported)
-│   ├── use-api-request.ts      # Core composable wrapper
-│   ├── callbacks.ts            # Callback types and utilities
-│   └── global-callbacks.ts     # Global callback registration
-└── composables/                # (or routes/ for nuxtServer)
-    ├── getPets.ts              # useFetchGetPets composable
-    ├── getPetById.ts           # useFetchGetPetById composable
-    └── ...                     # One file per operation
+output/                                # e.g. ./swagger
+├── apis/                              # OpenAPI-generated API classes
+│   ├── PetApi.ts
+│   └── ...
+├── models/                            # OpenAPI-generated model types
+│   ├── Pet.ts
+│   └── ...
+└── composables/
+    └── use-fetch/                     # (or use-async-data/)
+        ├── index.ts                   # Exports all composables
+        ├── composables/               # Generated composables
+        │   ├── useFetchGetPets.ts     # Composable for GET /pets
+        │   ├── useFetchGetPetById.ts  # Composable for GET /pets/{id}
+        │   └── ...                    # One file per operation
+        ├── runtime/                   # Runtime helpers (copied once)
+        │   └── useApiRequest.ts       # Core composable wrapper
+        └── shared/
+            └── runtime/
+                └── apiHelpers.ts      # Helper functions for callbacks
 ```
+
+::: tip
+Files in `runtime/` are copied to your project, not imported from an external package. This allows you to customize them.
+:::
+
+### For nuxtServer Generator
+
+When using the `nuxtServer` generator, the structure is different:
+
+```
+server/api/                            # Nuxt server routes (your serverRoutePath)
+├── _routes.ts                         # Documentation of all routes
+├── pets/
+│   ├── index.get.ts                  # GET /api/pets
+│   ├── [id].get.ts                   # GET /api/pets/{id}
+│   └── [id].delete.ts                # DELETE /api/pets/{id}
+├── store/
+│   └── inventory.get.ts              # GET /api/store/inventory
+└── user/
+    ├── [username].get.ts             # GET /api/user/{username}
+    └── login.get.ts                  # GET /api/user/login
+
+# Generated in project root:
+└── nuxt.config.example.ts            # Example Nuxt configuration
+```
+
+::: tip BFF Mode (Backend-for-Frontend)
+If you enable BFF mode with `--bff`, additional files will be generated:
+
+```
+server/
+├── api/                              # Server routes (as above)
+├── auth/                             # Authentication context
+│   ├── context.ts                    # Implement your auth logic here
+│   └── types.ts                      # Auth types
+└── bff/                              # BFF pattern structure
+    ├── README.md                     # BFF documentation
+    ├── examples.ts                   # Transformer examples
+    └── transformers/                 # Business logic transformers
+        ├── pets.ts                   # Pet-specific transformers
+        ├── store.ts                  # Store-specific transformers
+        └── user.ts                   # User-specific transformers
+```
+
+Transformers allow you to:
+- Add business logic before/after calling the API
+- Transform data between frontend and backend
+- Implement caching or custom validations
+- Add authentication context to requests
+:::
 
 ## CLI Options
 

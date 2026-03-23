@@ -27,7 +27,7 @@ const { execute } = useCreatePet({
   onRequest: (ctx) => console.log('Starting...'),
   onSuccess: (data) => navigateTo('/pets'),
   onError: (error) => toast.error(error.message),
-  onFinish: () => console.log('Done')
+  onFinish: ({ success }) => console.log('Done:', success)
 })
 ```
 

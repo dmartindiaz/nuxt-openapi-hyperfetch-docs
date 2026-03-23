@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: Nuxt OpenAPI Hyperfetch
-  text: Type-Safe API Composables
-  tagline: Generate Nuxt 3 composables from OpenAPI/Swagger specifications with full TypeScript support and lifecycle callbacks
+  text: Generate API Code for Nuxt
+  tagline: Point it at your OpenAPI spec and get fully typed useFetch composables, useAsyncData composables, or Nuxt server routes — ready to use, nothing to write by hand.
   image:
     src: /logo.png
     alt: Nuxt OpenAPI Hyperfetch
@@ -17,94 +17,107 @@ hero:
       link: https://github.com/dmartindiaz/nuxt-openapi-hyperfetch
 
 features:
+  - icon: ⚙️
+    title: Three generators, one CLI
+    details: Choose useFetch, useAsyncData, or Nuxt server routes (BFF mode). Mix and match per project.
+
   - icon: 🎯
-    title: Type-Safe
-    details: Full TypeScript support with types automatically derived from your OpenAPI schemas
-  
-  - icon: ⚡
-    title: SSR Compatible
-    details: All composables work seamlessly with Nuxt's server-side rendering
-  
+    title: Fully typed, no manual effort
+    details: Types are derived directly from your OpenAPI schemas. Parameters, request bodies, and responses are all typed automatically.
+
+  - icon: 🟢
+    title: Nuxt-native output
+    details: Generated composables wrap Nuxt's own useFetch and useAsyncData. No new APIs to learn, no runtime dependencies.
+
   - icon: 🔄
-    title: Lifecycle Callbacks
-    details: Built-in onRequest, onSuccess, onError, and onFinish callbacks for complete control
-  
-  - icon: 🔌
-    title: Global Callbacks
-    details: Define callbacks once in a plugin and apply them to all API requests automatically
-  
-  - icon: 🎛️
-    title: Request Interception
-    details: Modify headers, body, and query params before sending requests
-  
-  - icon: 📦
-    title: Zero Dependencies
-    details: Generated code only uses Nuxt built-in APIs - no runtime dependencies
-  
-  - icon: 🚀
-    title: Multiple Generators
-    details: Support for useFetch, useAsyncData, and Nuxt server routes with BFF pattern
-  
-  - icon: 🎨
-    title: Developer Experience
-    details: Interactive CLI with smart defaults and comprehensive error messages
+    title: Lifecycle callbacks
+    details: Every composable exposes onRequest, onSuccess, onError, and onFinish. Define them per call or globally in a plugin.
+
+  - icon: 🔒
+    title: BFF mode — credentials stay on the server
+    details: Server routes proxy your backend with API keys from runtimeConfig. Auth context and response transformers are generated once and never overwritten.
+
+  - icon: ♻️
+    title: Safe to regenerate
+    details: Route files update automatically when your spec changes. Your auth context and transformers are never touched.
 ---
 
-## Quick Example
+## What gets generated
 
-Generate type-safe composables in seconds:
+Run the CLI and pick your generators:
 
 ```bash
-# Install
-npm install -g nuxt-openapi-hyperfetch
-
-# Generate
-nxh generate -i swagger.yaml -o ./api
+npx nxh generate
 ```
 
-Use in your Nuxt components:
+**Composables (useFetch or useAsyncData):**
 
 ```vue
 <script setup lang="ts">
-const { data: pet, error, pending } = useFetchGetPetById(
+// Fully typed — petId: number, data: Pet | null, error typed
+const { data: pet, pending, error } = useFetchGetPetById(
   { petId: 123 },
   {
-    onSuccess: (pet) => {
-      console.log('Pet loaded:', pet.name)
-    },
-    onError: (error) => {
-      showToast('Failed to load pet', 'error')
-    }
+    onSuccess: (pet) => console.log('Loaded:', pet.name),
+    onError: (err) => showToast(err.message, 'error'),
   }
 )
 </script>
-
-<template>
-  <div v-if="pending">Loading...</div>
-  <div v-else-if="error">Error: {{ error }}</div>
-  <div v-else>{{ pet.name }}</div>
-</template>
 ```
 
-## Why Nuxt OpenAPI Hyperfetch?
+**Server routes (BFF mode):**
+
+```typescript
+// Generated: server/api/pet.post.ts
+export default defineEventHandler(async (event): Promise<Pet> => {
+  const auth = await getAuthContext(event)   // your auth logic
+
+  const data = await $fetch(`${config.apiBaseUrl}/pet`, {
+    headers: { Authorization: `Bearer ${config.apiSecret}` }, // key never exposed
+  })
+
+  return transformPet(data, event, auth)     // your transform logic
+})
+```
+
+Your transformer stub (`server/bff/transformers/pet.ts`) is generated once and never overwritten — add your business logic there:
+
+```typescript
+export async function transformPet<T = any>(
+  data: T,
+  event: H3Event,
+  auth: AuthContext | null
+): Promise<T> {
+  return {
+    ...(data as any),
+    canEdit: auth?.permissions.includes('pet:write') ?? false,
+  } as T
+}
+```
+
+## Why use this CLI?
 
 <div class="vp-doc">
 
-### Automated API Integration
+### You stop writing boilerplate
 
-Stop writing repetitive API integration code. Nuxt OpenAPI Hyperfetch automatically creates type-safe composables from your OpenAPI specification.
+Every endpoint in your OpenAPI spec becomes a ready-to-use composable or server route. If your spec has 40 endpoints, you get 40 typed composables with one command.
 
-### Type Safety Everywhere
+### Nuxt-native, but enhanced
 
-Get full TypeScript support without manual type definitions. Types are automatically generated from your API schemas.
+Generated composables use Nuxt's own `useFetch` and `useAsyncData` under the hood — fully SSR-compatible, works in components and pages without any setup. On top of that, you get lifecycle callbacks (`onRequest`, `onSuccess`, `onError`, `onFinish`), `pick` to trim the response, global callback plugins, and request interception. All the SSR guarantees of Nuxt, with more control where you need it.
 
-### Nuxt-Native
+### Raw responses when you need them
 
-Generated composables use Nuxt's built-in `useFetch` and `useAsyncData` - no learning curve, no external dependencies.
+The `useAsyncData` generator exposes raw response access — read status codes, response headers, and the full HTTP response before it hits your component. Useful for pagination headers, `ETag` caching, or any API that communicates via headers.
 
-### Production Ready
+### Your API keys never reach the browser
 
-Used in production applications handling millions of requests. Includes comprehensive error handling, SSR support, and performance optimizations.
+In BFF mode, credentials live in Nuxt `runtimeConfig` and are only used in server routes. The client calls `/api/pet`, not your backend directly.
+
+### Your custom logic survives regeneration
+
+Transformers and auth context are generated once. When you regenerate after a spec update, only the route files change — your business logic is untouched.
 
 </div>
 
@@ -112,9 +125,8 @@ Used in production applications handling millions of requests. Includes comprehe
 
 <div class="vp-doc">
 
-- **New to Nuxt OpenAPI Hyperfetch?** Start with the [Getting Started Guide](/guide/getting-started)
-- **Want to see examples?** Check out [Practical Examples](/examples/composables/basic/simple-get)
-- **Need API reference?** Browse the [API Documentation](/api/)
-- **Building server routes?** Learn about [BFF Pattern](/server/)
+- **New here?** Start with the [Getting Started Guide](/guide/getting-started)
+- **Choosing a generator?** Read [useFetch vs useAsyncData vs Server Routes](/guide/choosing-a-generator)
+- **Building with BFF mode?** Go to [Server Routes](/server/)
 
 </div>
