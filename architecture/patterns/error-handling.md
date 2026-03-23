@@ -375,4 +375,4 @@ onError: (error) => {
 
 - [Client Composables →](/architecture/patterns/client-composables)
 - [Server Composables →](/architecture/patterns/server-composables)
-- [Error Handling Examples →](/examples/composables/callbacks/error-toast)
+- [onError Callback →](/composables/features/callbacks/on-error)

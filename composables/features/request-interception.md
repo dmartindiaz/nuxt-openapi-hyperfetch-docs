@@ -526,4 +526,4 @@ onRequest: ({ body }) => {
 - [Callbacks Overview →](/composables/features/callbacks/overview)
 - [onRequest Callback →](/composables/features/callbacks/on-request)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
-- [Examples →](/examples/composables/callbacks/request-logging)
+- [onRequest Callback →](/composables/features/callbacks/on-request)

@@ -127,13 +127,6 @@ export default defineEventHandler(async (event): Promise<Pet> => {
 ## Re-generation behaviour
 
 All files under `server/api/` are **overwritten on every generation**. If you need to add custom logic to a route, do it in the transformer for that resource (`server/bff/transformers/{resource}.ts`) which is never overwritten. See [Transformers →](/server/transformers/)
-  path: string,
-  event: H3Event,
-  options?: RequestInit
-): Promise<T> {
-  // ...
-}
-```
 
 ## Complete Example
 
@@ -268,4 +261,3 @@ Parameters: userId = "1", postId = "2"
 - [BFF Pattern →](/server/bff-pattern/)
 - [Auth Context →](/server/auth-context/)
 - [Data Transformers →](/server/transformers/)
-- [Examples →](/examples/server/)

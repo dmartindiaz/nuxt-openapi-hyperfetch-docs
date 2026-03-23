@@ -295,4 +295,4 @@ export default defineEventHandler(async (event) => {
 
 - [Client Composables →](/architecture/patterns/client-composables)
 - [BFF Pattern →](/architecture/patterns/bff-pattern)
-- [Server Examples →](/examples/server/basic-bff/simple-route)
+- [BFF Pattern Guide →](/server/bff-pattern/)

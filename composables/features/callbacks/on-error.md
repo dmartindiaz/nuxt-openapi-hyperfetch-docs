@@ -450,4 +450,3 @@ onError: async (error) => {
 
 - [on Finish Callback →](/composables/features/callbacks/on-finish)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
-- [Error Handling →](/composables/features/error-handling)

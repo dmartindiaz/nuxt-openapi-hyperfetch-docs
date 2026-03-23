@@ -221,4 +221,4 @@ export default defineEventHandler(async (event) => {
 
 - [Server Composables Guide](/server/)
 - [BFF Pattern](/architecture/patterns/bff-pattern)
-- [Server Examples](/examples/server/)
+- [Server Routes →](/server/route-structure)

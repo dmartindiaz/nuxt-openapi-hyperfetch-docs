@@ -108,7 +108,7 @@ useAsyncDataGetPets('pets', {}, {
 })
 ```
 
-[Learn more about data transformation →](/composables/features/data-transformation)
+[Learn more about data transformation →](/server/transformers/)
 
 ### Authentication
 
@@ -145,7 +145,7 @@ useGlobalCallbacks({
 })
 ```
 
-[Learn more about error handling →](/composables/features/error-handling)
+[Learn more about error handling →](/composables/features/callbacks/on-error)
 
 ## Quick Comparison
 
@@ -207,5 +207,5 @@ useGlobalCallbacks({
 
 - **Learn useFetch**: [useFetch Introduction →](/composables/use-fetch/)
 - **Learn useAsyncData**: [useAsyncData Introduction →](/composables/use-async-data/)
-- **See Examples**: [Practical Examples →](/examples/composables/basic/simple-get)
+- **See Examples**: [Basic Usage →](/composables/use-fetch/basic-usage)
 - **Explore Features**: [Shared Features →](/composables/features/)

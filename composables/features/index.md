@@ -260,7 +260,7 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-[Learn more about error handling →](/composables/features/error-handling)
+[Learn more about error handling →](/composables/features/callbacks/on-error)
 
 ## Feature Architecture
 
@@ -327,6 +327,6 @@ Explore each feature in detail:
 - [Callbacks Overview →](/composables/features/callbacks/overview)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
 - [Request Interception →](/composables/features/request-interception)
-- [Data Transformation →](/composables/features/data-transformation)
+- [Server Transformers →](/server/transformers/)
 - [Authentication →](/composables/features/authentication)
-- [Error Handling →](/composables/features/error-handling)
+- [Error Handling →](/composables/features/callbacks/on-error)

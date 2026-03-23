@@ -82,5 +82,4 @@ If you skip BFF during generation, no `server/auth/` or `server/bff/` directorie
 
 - [Auth Context →](/server/auth-context/)
 - [Transformers →](/server/transformers/)
-- [What is BFF? →](/server/bff-pattern/what-is-bff)
 

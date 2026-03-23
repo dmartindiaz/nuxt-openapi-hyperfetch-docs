@@ -179,4 +179,4 @@ export async function getServerPet(event: H3Event, id: number) {
 ## Next Steps
 
 - [Architecture Decisions →](/architecture/decisions/)
-- [Examples →](/examples/)
+- [Guide →](/guide/)

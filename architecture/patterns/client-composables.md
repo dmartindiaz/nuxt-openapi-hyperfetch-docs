@@ -244,4 +244,4 @@ const { data: pet } = useFetchPet(1, {
 
 - [Server Composables →](/architecture/patterns/server-composables)
 - [Error Handling →](/architecture/patterns/error-handling)
-- [Examples →](/examples/composables/basic/simple-get)
+- [Basic Usage →](/composables/use-fetch/basic-usage)

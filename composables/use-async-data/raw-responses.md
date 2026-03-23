@@ -393,4 +393,4 @@ response.value?.data          // Pet[] (typed from OpenAPI)
 
 - [Basic Usage](/composables/use-async-data/basic-usage)
 - [vs useFetch](/composables/use-async-data/vs-use-fetch)
-- [Pagination Example](/examples/composables/advanced/pagination)
+- [useAsyncData Overview](/composables/use-async-data/)

@@ -167,7 +167,6 @@ export async function verifyAuth(event: H3Event) {
 ## Next Steps
 
 - [Route Structure →](/server/route-structure)
-- [What is BFF? →](/server/bff-pattern/what-is-bff)
+- [BFF Pattern →](/server/bff-pattern/)
 - [Auth Context →](/server/auth-context/)
 - [Data Transformers →](/server/transformers/)
-- [Examples →](/examples/server/basic-bff/)

@@ -230,7 +230,7 @@ For comprehensive documentation, including examples, troubleshooting, and API re
 - 🌐 **[Online Documentation](https://nuxt-openapi-hyperfetch.dev)** - Complete guide and API reference
 - 📘 **[Getting Started Guide](./guide/getting-started.md)** - Detailed installation and setup
 - 🎓 **[Core Concepts](./guide/core-concepts.md)** - Understanding the architecture
-- 💡 **[Examples](./examples/)** - Real-world usage examples
+- � **[Composables Reference](./composables/)** - All generated composables
 - 🔧 **[Troubleshooting](./troubleshooting/)** - Common issues and solutions
 
 ## 🤝 Contributing

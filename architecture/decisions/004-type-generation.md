@@ -286,5 +286,4 @@ Use `type` instead of `interface`.
 
 ## Related
 
-- [Generated Types Reference](/api/interfaces/types)
 - [Type Safety Guide](/guide/core-concepts#type-safety)

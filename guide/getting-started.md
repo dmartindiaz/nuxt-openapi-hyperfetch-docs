@@ -345,5 +345,5 @@ Now that you have generated composables:
 
 - **Learn Core Concepts**: Understand [key concepts](/guide/core-concepts) behind the generator
 - **Choose a Generator**: Learn about [different generator types](/guide/choosing-a-generator)
-- **See Examples**: Browse [practical examples](/examples/composables/basic/simple-get)
+- **See Examples**: Browse [basic usage](/composables/use-fetch/basic-usage)
 - **Add Callbacks**: Learn about [lifecycle callbacks](/composables/features/callbacks/overview)

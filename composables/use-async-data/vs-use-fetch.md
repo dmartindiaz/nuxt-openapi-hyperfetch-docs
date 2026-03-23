@@ -406,4 +406,4 @@ const { data: response } = useAsyncDataGetPetsRaw('pets')
 
 - [useFetch Guide](/composables/use-fetch/)
 - [useAsyncData Guide](/composables/use-async-data/)
-- [Practical Examples](/examples/composables/basic/simple-get)
+- [Basic Usage](/composables/use-fetch/basic-usage)

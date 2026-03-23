@@ -167,7 +167,7 @@ Don't skip levels (H1 → H3)
 ```markdown
 // Internal links - relative paths
 [Getting Started](./getting-started)
-[Examples](/examples/)
+[Composables](/composables/)
 
 // External links - full URLs
 [Nuxt 3 Documentation](https://nuxt.com/docs)
@@ -365,7 +365,7 @@ petId.value = 2
 ## See Also
 
 - [useAsyncData →](./useAsyncData) - Alternative with more control
-- [Examples →](/examples/composables/basic/simple-get)
+- [Basic Usage →](/composables/use-fetch/basic-usage)
 ```
 
 ## Next Steps

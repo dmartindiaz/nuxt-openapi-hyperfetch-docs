@@ -274,4 +274,4 @@ interface Pet {
 
 - [**Getting Started**](/guide/getting-started) - Install and generate your first composables
 - [**Core Concepts**](/guide/core-concepts) - Understand the key concepts
-- [**Examples**](/examples/composables/basic/simple-get) - See practical code examples
+- [**Composables Reference**](/composables/) - Explore all available composables

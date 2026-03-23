@@ -230,4 +230,4 @@ onFinish: ({ success }) => {
 
 - [Callbacks Overview →](/composables/features/callbacks/overview)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
-- [Practical Examples →](/examples/composables/callbacks/error-toast.md)
+- [onError Callback →](/composables/features/callbacks/on-error)

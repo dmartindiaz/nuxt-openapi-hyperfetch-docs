@@ -267,5 +267,5 @@ const { data: pet } = await useFetch('/api/pets/1')
 ## Next Steps
 
 - [Server Composables →](/architecture/patterns/server-composables)
-- [Server Examples →](/examples/server/basic-bff/simple-route)
-- [Authentication →](/examples/server/basic-bff/with-auth)
+- [BFF Pattern Guide →](/server/bff-pattern/)
+- [Auth Context →](/server/auth-context/)

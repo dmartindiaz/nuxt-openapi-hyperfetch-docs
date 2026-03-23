@@ -632,6 +632,6 @@ const { data: pets } = useFetchGetPets({}, {
 
 - [Global Headers](/composables/features/global-headers) - Set headers globally for all requests
 - [Request Interception](/composables/features/request-interception) - Modify requests before sending
-- [Data Transformation](/composables/features/data-transformation) - Transform response data with Nuxt's transform
+- [Server Transformers](/server/transformers/) - Transform response data server-side
 - [useFetch Basic Usage](/composables/use-fetch/basic-usage) - Pick examples with useFetch
 - [useAsyncData Basic Usage](/composables/use-async-data/basic-usage) - Pick examples with useAsyncData

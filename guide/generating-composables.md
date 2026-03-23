@@ -615,5 +615,5 @@ See [Troubleshooting](/troubleshooting/generation-errors) for more issues.
 ## Next Steps
 
 - **Choose a Generator**: Learn [which generator to use](/guide/choosing-a-generator)
-- **See Examples**: Browse [practical examples](/examples/composables/basic/simple-get)
+- **See Examples**: Browse [basic usage](/composables/use-fetch/basic-usage)
 - **Add Callbacks**: Learn about [lifecycle callbacks](/composables/features/callbacks/overview)

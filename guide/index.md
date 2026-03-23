@@ -47,13 +47,12 @@ We recommend following this path:
 3. Read **[Core Concepts](./core-concepts)** to understand how it works
 4. Learn about **[Generating Composables](./generating-composables)** in detail
 5. Explore the **[Composables](/composables/)** section for detailed API documentation
-6. Check out **[Examples](/examples/composables/basic/simple-get)** for real-world use cases
+6. Check out the **[Composables](/composables/)** section for all API details
 
 ## Need Help?
 
 - **[Troubleshooting](/troubleshooting/)** - Common issues and solutions
-- **[Examples](/examples/)** - Real-world code examples
-- **[API Reference](/api/)** - Complete API documentation
+- **[Contributing](/contributing/)** - How to contribute
 
 ## Next Steps
 

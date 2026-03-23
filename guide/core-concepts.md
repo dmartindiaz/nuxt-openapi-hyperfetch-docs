@@ -532,6 +532,6 @@ See [Callbacks](/composables/features/callbacks/overview) for full details.
 Now that you understand core concepts:
 
 - **Choose a Generator**: Learn about [different generator types](/guide/choosing-a-generator)
-- **See Examples**: Browse [practical examples](/examples/composables/basic/simple-get)
+- **See Examples**: Browse [basic usage](/composables/use-fetch/basic-usage)
 - **Add Callbacks**: Learn about [lifecycle callbacks](/composables/features/callbacks/overview)
 - **Use Global Callbacks**: Set up [global callbacks](/composables/features/global-callbacks/overview)

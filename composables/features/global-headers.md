@@ -719,5 +719,5 @@ Global Headers are re-evaluated on each request, but if you're seeing caching:
 
 - [Request Interception →](/composables/features/request-interception)
 - [Global Callbacks →](/composables/features/global-callbacks/overview)
-- [Authentication Examples →](/composables/features/authentication)
-- [Error Handling →](/composables/features/error-handling)
+- [Authentication →](/composables/features/authentication)
+- [onError Callback →](/composables/features/callbacks/on-error)

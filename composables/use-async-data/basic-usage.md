@@ -335,4 +335,4 @@ const { data: pets } = useAsyncDataGetPets(
 - [Raw Responses](/composables/use-async-data/raw-responses)
 - [vs useFetch](/composables/use-async-data/vs-use-fetch)
 - [Callbacks](/composables/features/callbacks/overview)
-- [Examples](/examples/composables/basic/simple-get)
+- [useFetch Basic Usage](/composables/use-fetch/basic-usage)

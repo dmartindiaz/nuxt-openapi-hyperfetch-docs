@@ -643,5 +643,4 @@ useFetchGetPets({}, {
 
 - [Global Callbacks Setup →](/composables/features/global-callbacks/setup)
 - [onRequest Callback →](/composables/features/callbacks/on-request)
-- [Error Handling →](/composables/features/error-handling)
-- [Examples →](/examples/composables/advanced/authentication-flow)
+- [onError Callback →](/composables/features/callbacks/on-error)

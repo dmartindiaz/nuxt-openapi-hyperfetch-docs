@@ -644,7 +644,7 @@ nxh generate -i swagger.yaml -o ./server/api -g nuxtServer
 
 ## Next Steps
 
-- **See useFetch Examples**: [Basic Examples](/examples/composables/basic/simple-get)
-- **See useAsyncData Examples**: [Advanced Examples](/examples/composables/advanced/authentication-flow)
-- **See nuxtServer Examples**: [Server Examples](/examples/server/basic-bff/simple-route)
+- **See useFetch Examples**: [Basic Usage](/composables/use-fetch/basic-usage)
+- **See useAsyncData Examples**: [Authentication](/composables/features/authentication)
+- **See nuxtServer Examples**: [BFF Pattern](/server/bff-pattern/)
 - **Learn About Callbacks**: [Callback System](/composables/features/callbacks/overview)
