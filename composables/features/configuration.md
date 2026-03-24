@@ -43,6 +43,7 @@ The CLI will look for these files in order:
 export default {
   input: './openapi.yaml',
   output: './swagger',              // OpenAPI files + composables go here
+  generator: 'heyapi',              // 'openapi' (requires Java) | 'heyapi' (Node.js only)
   baseUrl: 'https://api.example.com',
   generators: ['useFetch', 'useAsyncData', 'nuxtServer'],
   serverRoutePath: './server/api',  // nuxtServer routes go here (separate)
@@ -232,6 +233,30 @@ generators: ['useFetch', 'useAsyncData', 'nuxtServer']
 - **`useAsyncData`**: Composables using Nuxt's `useAsyncData` (more control, manual cache keys, includes Raw variant with headers)
 - **`nuxtServer`**: Nuxt server API routes (BFF pattern)
 
+### generator
+
+**Type:** `'openapi' | 'heyapi'`  
+**Default:** interactive prompt (first run)
+
+The backend engine used to generate the API client code before composables are created.
+
+```javascript
+// Use OpenAPI Generator (official) — requires Java 11+
+generator: 'openapi'
+
+// Use @hey-api/openapi-ts — Node.js only, no Java required
+generator: 'heyapi'
+```
+
+| Value | Tool | Requirement | Output |
+|-------|------|-------------|--------|
+| `'openapi'` | OpenAPI Generator (official) | Java 11+ | `apis/`, `models/` |
+| `'heyapi'` | @hey-api/openapi-ts | Node.js only | `client/`, `core/`, `sdk.gen.ts`, `types.gen.ts` |
+
+::: tip
+If `generator` is omitted from the config, the CLI will prompt you to choose interactively on the first run. Set it explicitly to skip the prompt in CI/CD or team setups.
+:::
+
 ### tags
 
 **Type:** `string[]`  
@@ -367,6 +392,7 @@ watch: true
 export default {
   input: './openapi.yaml',
   output: './composables',
+  generator: 'heyapi',              // no Java required
   baseUrl: 'https://api.example.com',
   generators: ['useFetch', 'useAsyncData']
 }
@@ -388,6 +414,7 @@ npx nxh generate
 export default {
   input: 'http://localhost:3001/openapi.json',
   output: './composables',
+  generator: 'heyapi',
   baseUrl: 'http://localhost:3001',
   generators: ['useFetch'],
   watch: true,
@@ -402,6 +429,7 @@ export default {
 export default {
   input: 'https://api.example.com/openapi.json',
   output: './composables',
+  generator: 'heyapi',
   baseUrl: 'https://api.example.com',
   generators: ['useFetch', 'useAsyncData'],
   overwrite: true
