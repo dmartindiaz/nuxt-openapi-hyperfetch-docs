@@ -13,7 +13,10 @@ hero:
       text: Get Started
       link: /guide/getting-started
     - theme: alt
-      text: View on GitHub
+      text: View on npm
+      link: https://www.npmjs.com/package/nuxt-openapi-hyperfetch
+    - theme: alt
+      text: ⭐ Star on GitHub
       link: https://github.com/dmartindiaz/nuxt-openapi-hyperfetch
 
 features:
