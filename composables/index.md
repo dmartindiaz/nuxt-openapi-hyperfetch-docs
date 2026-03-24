@@ -39,7 +39,7 @@ const { data, pending, error, refresh } = useFetchGetPets()
 Generated when using `--generator useAsyncData`:
 
 ```typescript
-const { data, pending, error, refresh } = useAsyncDataGetPets('pets-key')
+const { data, pending, error, refresh } = useAsyncDataGetPets()
 ```
 
 **Best for:** Complex logic, data transformations, raw responses
@@ -103,7 +103,7 @@ useFetchGetUsers({}, {
 Transform response data with `transform` option:
 
 ```typescript
-useAsyncDataGetPets('pets', {}, {
+useAsyncDataGetPets({}, {
   transform: (pets) => pets.map(p => ({ ...p, displayName: p.name.toUpperCase() }))
 })
 ```
@@ -159,7 +159,7 @@ useGlobalCallbacks({
 | SSR Compatible | ✅ Yes | ✅ Yes |
 | Raw Response | ❌ No | ✅ Yes |
 | Data Transform | ✅ Yes | ✅ Yes |
-| Cache Key | Auto | Manual |
+| Cache Key | Auto | Auto (custom optional) |
 | **Best For** | Simple calls | Complex logic |
 
 ## Architecture

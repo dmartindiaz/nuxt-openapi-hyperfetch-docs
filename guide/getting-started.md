@@ -276,6 +276,12 @@ After generating composables, you may need to configure your Nuxt app:
 
 ### 1. Set Base URL
 
+The base URL configuration differs depending on which generator you are using.
+
+#### For `useFetch` and `useAsyncData`
+
+These composables run on the **client** (or during SSR hydration), so the base URL must be exposed as a **public** runtime config variable.
+
 Create a `.env` file:
 
 ```bash
@@ -302,6 +308,38 @@ Reference in generated composables (if needed):
 const config = useRuntimeConfig()
 const baseUrl = config.public.apiBaseUrl
 ```
+
+#### For Nuxt Server routes (`nuxtServer` generator)
+
+Server routes run exclusively on the **server**, so the base URL should be a **private** runtime config variable (not exposed to the client).
+
+Create a `.env` file:
+
+```bash
+# .env
+NUXT_API_BASE_URL=https://api.example.com
+```
+
+Use in your app:
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    apiBaseUrl: process.env.NUXT_API_BASE_URL || 'http://localhost:3000'
+  }
+})
+```
+
+Reference inside server routes:
+
+```typescript
+const config = useRuntimeConfig()
+const baseUrl = config.apiBaseUrl
+```
+
+> [!IMPORTANT]
+> Never put private API base URLs (or secrets) under `runtimeConfig.public`. Public values are exposed to the browser. Use the top-level `runtimeConfig` (private) for server-only variables.
 
 ### 2. Setup Global Callbacks (Optional)
 

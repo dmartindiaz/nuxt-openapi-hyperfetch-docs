@@ -374,7 +374,7 @@ const { data } = useFetchPets(undefined, {
 ### Body Not Sent
 
 ```typescript
-const { data } = useAsyncDataCreatePet('create-pet', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   type: 'cat'
 })
@@ -388,7 +388,6 @@ const { data } = useAsyncDataCreatePet('create-pet', {
 ```typescript
 // ✅ Pass body as parameter
 const { data } = useAsyncDataCreatePet(
-  'create-pet',
   {
     name: 'Fluffy',
     type: 'cat'

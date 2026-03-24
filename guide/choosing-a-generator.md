@@ -96,14 +96,14 @@ nxh generate -i swagger.yaml -o ./composables/api -g useFetch
 
 ```typescript
 export function useAsyncDataGetPets(
-  key: string,
   params?: {},
-  options?: ApiAsyncDataOptions<Pet[]>
+  options?: ApiAsyncDataOptions<Pet[]>,
+  customKey?: string
 ) {
-  return useApiAsyncData<Pet[]>(key, '/pets', {
+  return useApiAsyncData<Pet[]>('/pets', {
     method: 'GET',
     ...options
-  })
+  }, customKey)
 }
 ```
 
@@ -111,22 +111,21 @@ export function useAsyncDataGetPets(
 
 - ✅ Uses Nuxt's `useAsyncData` under the hood
 - ✅ More control over execution
-- ✅ Requires unique cache key
+- ✅ Auto-generates cache key from operation + URL + params
 - ✅ Can access raw response
 - ✅ Full data transformation support
 - ⚠️ Slightly more complex API
-- ⚠️ Must manage cache keys manually
+- ⚠️ Custom key is optional (only for manual cache sharing)
 
 ### Usage Example
 
 ```vue
 <script setup lang="ts">
 // Basic usage (similar to useFetch)
-const { data, pending } = useAsyncDataGetPets('pets-list')
+const { data, pending } = useAsyncDataGetPets()
 
 // With transformation
 const { data: petNames } = useAsyncDataGetPets(
-  'pet-names',
   {},
   {
     transform: (pets) => pets.map(p => p.name)
@@ -134,7 +133,14 @@ const { data: petNames } = useAsyncDataGetPets(
 )
 
 // Access raw response
-const { data: petResponse } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: petResponse } = useAsyncDataGetPetsRaw()
+
+// Optional custom key (manual cache sharing)
+const { data: sharedPets } = useAsyncDataFindPetsByStatus(
+  { status: 'available' },
+  undefined,
+  'mi-clave'
+)
 
 watch(petResponse, (response) => {
   console.log('Status:', response.status)
@@ -167,22 +173,27 @@ watch(petResponse, (response) => {
 
 ```typescript
 // Generated alongside useAsyncDataGetPets
-export function useAsyncDataGetPetsRaw(key: string, params?: {}) {
-  return useApiAsyncDataRaw<Pet[]>(key, '/pets', {
-    method: 'GET'
-  })
+export function useAsyncDataGetPetsRaw(
+  params?: {},
+  options?: ApiAsyncDataOptions<RawResponse<Pet[]>>,
+  customKey?: string
+) {
+  return useApiAsyncDataRaw<Pet[]>('/pets', {
+    method: 'GET',
+    ...options
+  }, customKey)
 }
 ```
 
 Access full response:
 
 ```typescript
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 response.value?.status      // 200
 response.value?.statusText  // "OK"
 response.value?.headers     // Headers object
-response.value?._data       // Pet[] (actual data)
+response.value?.data        // Pet[] (actual data)
 ```
 
 ### Generation

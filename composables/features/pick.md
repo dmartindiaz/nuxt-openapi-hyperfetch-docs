@@ -413,7 +413,7 @@ Use `transform` when you want to:
 
 ```typescript
 // Transform: Modify data
-const { data } = useAsyncDataGetUser('user', { id: 1 }, {
+const { data } = useAsyncDataGetUser({ id: 1 }, {
   transform: (user) => ({
     ...user,
     fullName: `${user.firstName} ${user.lastName}`,
@@ -427,7 +427,7 @@ const { data } = useAsyncDataGetUser('user', { id: 1 }, {
 Combine for maximum efficiency:
 
 ```typescript
-const { data } = useAsyncDataGetUsers('users', {}, {
+const { data } = useAsyncDataGetUsers({}, {
   // Step 1: Pick only needed fields (reduces transfer)
   pick: ['id', 'firstName', 'lastName', 'createdAt'] as const,
   

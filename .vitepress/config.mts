@@ -204,6 +204,7 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/dmartindiaz' },
+      { icon: 'linkedin', link: 'https://www.linkedin.com/in/dmartindiaz' },
     ],
 
     search: {

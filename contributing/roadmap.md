@@ -285,6 +285,7 @@ GET /pets?search=fluffy → useFetchPets({ search: true })
 - **Discussions** - Follow announcements
 - **Discord** - Join #announcements
 - **Twitter** - Follow @nuxt_generator
+- **LinkedIn** - Follow https://www.linkedin.com/in/dmartindiaz
 
 ## Feedback
 

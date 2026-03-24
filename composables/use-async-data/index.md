@@ -30,7 +30,7 @@ For each OpenAPI endpoint, the CLI generates **two composables**:
 Returns only data (like Nuxt's useAsyncData):
 
 ```typescript
-const { data: pets, pending, error } = useAsyncDataGetPets('pets-list')
+const { data: pets, pending, error } = useAsyncDataGetPets()
 // data: Ref<Pet[]>
 ```
 
@@ -39,15 +39,31 @@ const { data: pets, pending, error } = useAsyncDataGetPets('pets-list')
 Returns full response with headers, status, and data:
 
 ```typescript
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 // response: Ref<{ data: Pet[], headers: Headers, status: number, statusText: string }>
+```
+
+### Cache Key Behavior
+
+Generated `useAsyncData*` composables create a key automatically from operation + resolved URL + params.
+
+- Auto-key example: `useAsyncDataGetPetById-/pet/1` vs `useAsyncDataGetPetById-/pet/2` (independent cache entries)
+- Auto-key example with query params: `useAsyncDataFindPetsByStatus-/pet/findByStatus-{"status":"available"}`
+- No params example: `useAsyncDataGetInventory-/store/inventory`
+
+You can still pass a custom key if you want manual cache sharing between components (for example, intentional SSR payload sharing):
+
+```typescript
+const { data } = useAsyncDataFindPetsByStatus(
+  { status: 'available' },
+  undefined,
+  'mi-clave'
+)
 ```
 
 ::: tip Response Headers - Not in Nuxt
 **Important**: Nuxt's native `useAsyncData` does NOT return response headers or status codes. The Raw variant is a CLI addition for accessing pagination headers, rate limits, ETags, and more.
 :::
-
-## Quick Example
 
 ## Quick Example
 
@@ -57,8 +73,7 @@ const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
 <script setup lang="ts">
 // Type-safe composable with lifecycle callbacks
 const { data: pets, pending, error } = useAsyncDataGetPets(
-  'pets-list',
-  {},
+  undefined,
   {
     onSuccess: (pets) => {
       console.log(`Loaded ${pets.length} pets`)
@@ -80,7 +95,7 @@ const { data: pets, pending, error } = useAsyncDataGetPets(
 
 ```vue
 <script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 const totalCount = computed(() => {
   return response.value?.headers.get('X-Total-Count')

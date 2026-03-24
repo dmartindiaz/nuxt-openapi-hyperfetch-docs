@@ -205,7 +205,7 @@ FetchError: 422 Unprocessable Entity
 **Solution:**
 
 ```typescript
-const { data, error } = useAsyncDataCreatePet('create', {
+const { data, error } = useAsyncDataCreatePet({
   name: '',  // ❌ Empty name
   age: -1    // ❌ Negative age
 })

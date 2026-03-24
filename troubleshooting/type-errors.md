@@ -359,7 +359,7 @@ components:
 ### Body Type Mismatch
 
 ```typescript
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   age: '3'  // ❌ Type 'string' is not assignable to type 'number'
 })
@@ -371,14 +371,14 @@ const { data } = useAsyncDataCreatePet('create', {
 
 ```typescript
 // ✅ Use correct types
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   age: 3  // ✅ number
 })
 
 // ✅ Or convert
 const ageStr = '3'
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   age: Number(ageStr)
 })
@@ -387,7 +387,7 @@ const { data } = useAsyncDataCreatePet('create', {
 ### Extra Properties Not Allowed
 
 ```typescript
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   color: 'orange'  // ❌ Object literal may only specify known properties
 })
@@ -399,7 +399,7 @@ const { data } = useAsyncDataCreatePet('create', {
 
 ```typescript
 // ✅ Option 1: Only use defined properties
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy'
 })
 
@@ -413,7 +413,7 @@ Pet:
       type: string
 
 // ✅ Option 3: Type assertion (not recommended)
-const { data } = useAsyncDataCreatePet('create', {
+const { data } = useAsyncDataCreatePet({
   name: 'Fluffy',
   color: 'orange'
 } as CreatePetRequest)
@@ -425,7 +425,7 @@ const { data } = useAsyncDataCreatePet('create', {
 
 ```typescript
 const status = 'available'
-const { data } = useAsyncDataUpdatePet('update', {
+const { data } = useAsyncDataUpdatePet({
   status  // ❌ Type 'string' is not assignable to type '"available" | "pending"'
 })
 ```
@@ -437,14 +437,14 @@ const { data } = useAsyncDataUpdatePet('update', {
 ```typescript
 // ✅ Option 1: Use const assertion
 const status = 'available' as const
-const { data } = useAsyncDataUpdatePet('update', { status })
+const { data } = useAsyncDataUpdatePet({ status })
 
 // ✅ Option 2: Type the variable
 const status: 'available' | 'pending' | 'sold' = 'available'
-const { data } = useAsyncDataUpdatePet('update', { status })
+const { data } = useAsyncDataUpdatePet({ status })
 
 // ✅ Option 3: Inline literal
-const { data } = useAsyncDataUpdatePet('update', {
+const { data } = useAsyncDataUpdatePet({
   status: 'available'
 })
 ```

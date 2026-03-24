@@ -454,21 +454,23 @@ import {
  */
 export const useAsyncDataGetPetById = (
   params: GetPetByIdRequest,
-  options?: ApiAsyncDataOptions<Pet>
+  options?: ApiAsyncDataOptions<Pet>,
+  customKey?: string
 ) => {
   return useApiAsyncData<Pet>(
-    'useAsyncDataGetPetById',  // Auto-generated unique cache key
     `/pet/${params.petId}`,
     {
       method: 'GET',
       ...options,
-    }
+    },
+    customKey
   );
 };
 ```
 
 **Key characteristics:**
-- Includes auto-generated cache key: `'useAsyncDataGetPetById'`
+- Auto-generated key includes operation + URL + params (for example: `useAsyncDataGetPetById-/pet/1`)
+- You can override key with an optional custom key parameter
 - Supports `transform`, `immediate`, `lazy` options
 - May generate `*Raw` variant for endpoints with request body
 

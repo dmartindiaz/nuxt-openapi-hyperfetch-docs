@@ -8,10 +8,10 @@ Every `useAsyncData` composable has a **Raw variant** that returns the complete 
 
 ```typescript
 // Standard variant - returns data only
-const { data: pets } = useAsyncDataGetPets('pets')
+const { data: pets } = useAsyncDataGetPets()
 
 // Raw variant - returns full response with headers and status
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 ```
 
 ::: tip CLI Addition - Not in Nuxt
@@ -36,14 +36,39 @@ For each operation, two composables are generated:
 
 ```typescript
 // Standard - returns only data
-export function useAsyncDataGetPets(key: string, params?: {}) {
-  return useApiAsyncData<Pet[]>(key, '/pets', { method: 'GET' })
+export function useAsyncDataGetPets(
+  params?: {},
+  options?: ApiAsyncDataOptions<Pet[]>,
+  customKey?: string
+) {
+  return useApiAsyncData<Pet[]>('/pets', { method: 'GET', ...options }, customKey)
 }
 
 // Raw (adds "Raw" suffix) - returns full response
-export function useAsyncDataGetPetsRaw(key: string, params?: {}) {
-  return useApiAsyncDataRaw<Pet[]>(key, '/pets', { method: 'GET' })
+export function useAsyncDataGetPetsRaw(
+  params?: {},
+  options?: ApiAsyncDataOptions<RawResponse<Pet[]>>,
+  customKey?: string
+) {
+  return useApiAsyncDataRaw<Pet[]>('/pets', { method: 'GET', ...options }, customKey)
 }
+```
+
+By default, keys are auto-generated from operation + resolved URL + params.
+
+- `useAsyncDataGetPetById-/pet/1`
+- `useAsyncDataGetPetById-/pet/2`
+- `useAsyncDataFindPetsByStatus-/pet/findByStatus-{"status":"available"}`
+- `useAsyncDataGetInventory-/store/inventory`
+
+You can override with a custom key if you want intentional cache sharing:
+
+```typescript
+const { data: response } = useAsyncDataFindPetsByStatusRaw(
+  { status: 'available' },
+  undefined,
+  'mi-clave'
+)
 ```
 
 ## Response Structure
@@ -65,7 +90,7 @@ interface RawResponse<T> {
 
 ```vue
 <script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 watch(response, (res) => {
   if (res) {
@@ -96,7 +121,7 @@ watch(response, (res) => {
 
 ```vue
 <script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 const rateLimit = computed(() => {
   if (!response.value) return null
@@ -134,7 +159,7 @@ Many APIs return pagination info in headers:
 const page = ref(1)
 
 const { data: response, refresh } = useAsyncDataGetPetsRaw(
-  `pets-page-${page.value}`
+  { page: page.value }
 )
 
 const pagination = computed(() => {
@@ -187,7 +212,6 @@ const prevPage = () => {
 const etag = ref<string | null>(null)
 
 const { data: response, refresh } = useAsyncDataGetPetsRaw(
-  'pets-etag',
   {},
   {
     onRequest: ({ headers }) => {
@@ -220,7 +244,7 @@ watch(response, (res) => {
 
 ```vue
 <script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw('pets')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 const rateLimitStatus = computed(() => {
   if (!response.value) return null
@@ -269,7 +293,6 @@ watch(rateLimitStatus, (status) => {
 ```vue
 <script setup lang="ts">
 const { data: response } = useAsyncDataGetPetByIdRaw(
-  'pet-123',
   { petId: 123 }
 )
 
@@ -306,7 +329,7 @@ const message = computed(() => {
 
 ```vue
 <script setup lang="ts">
-const { data: response } = useAsyncDataGetPetImageRaw('pet-image')
+const { data: response } = useAsyncDataGetPetImageRaw()
 
 const contentType = computed(() => {
   return response.value?.headers.get('Content-Type')
@@ -337,10 +360,10 @@ You can use both variants when needed:
 ```vue
 <script setup lang="ts">
 // For display (simple)
-const { data: pets } = useAsyncDataGetPets('pets')
+const { data: pets } = useAsyncDataGetPets()
 
 // For metadata (detailed)
-const { data: response } = useAsyncDataGetPetsRaw('pets-raw')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 const totalCount = computed(() => {
   return response.value?.headers.get('X-Total-Count')
@@ -362,7 +385,7 @@ const totalCount = computed(() => {
 Raw responses are fully typed:
 
 ```typescript
-const { data: response } = useAsyncDataGetPetsRaw('pets')
+const { data: response } = useAsyncDataGetPetsRaw()
 
 // TypeScript knows the structure
 response.value?.status        // number

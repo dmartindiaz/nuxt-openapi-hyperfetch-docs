@@ -248,8 +248,9 @@ MIT License
 ## 🔗 Links
 
 - [Documentation](https://nuxt-openapi-hyperfetch.dev)
-- [GitHub Repository](https://github.com/your-org/nuxt-openapi-hyperfetch)
-- [Issue Tracker](https://github.com/your-org/nuxt-openapi-hyperfetch/issues)
+- [GitHub Repository](https://github.com/dmartindiaz/nuxt-openapi-hyperfetch)
+- [Issue Tracker](https://github.com/dmartindiaz/nuxt-openapi-hyperfetch/issues)
+- [LinkedIn](https://www.linkedin.com/in/dmartindiaz)
 
 ---
 

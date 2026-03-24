@@ -230,7 +230,7 @@ generators: ['useFetch', 'useAsyncData', 'nuxtServer']
 **What each generator creates:**
 
 - **`useFetch`**: Composables using Nuxt's `useFetch` (simpler, auto cache keys)
-- **`useAsyncData`**: Composables using Nuxt's `useAsyncData` (more control, manual cache keys, includes Raw variant with headers)
+- **`useAsyncData`**: Composables using Nuxt's `useAsyncData` (more control, auto cache keys with optional custom key, includes Raw variant with headers)
 - **`nuxtServer`**: Nuxt server API routes (BFF pattern)
 
 ### generator
