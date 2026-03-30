@@ -111,6 +111,7 @@ composables/
     use-orders-connector.ts
     index.ts               ← re-exports all connectors
   runtime/                 ← runtime helpers (copied once, never overwritten)
+    connector-types.ts
     useListConnector.ts
     useDetailConnector.ts
     useFormConnector.ts
@@ -124,41 +125,29 @@ Each connector file is auto-generated and **will be overwritten** on the next ru
 
 ## A first look at a generated connector
 
+The generated connector exposes a typed function with two overloads: plain params or a factory. The return type is fully inferred.
+
 ```ts
 // composables/connectors/use-pets-connector.ts
 // ⚠️ AUTO-GENERATED — DO NOT EDIT MANUALLY
 
-import { z } from 'zod'
-import { useListConnector } from '#nxh/runtime/useListConnector'
-import { useDetailConnector } from '#nxh/runtime/useDetailConnector'
-import { useFormConnector } from '#nxh/runtime/useFormConnector'
-import { useDeleteConnector } from '#nxh/runtime/useDeleteConnector'
-import { useAsyncDataGetPets } from '../use-async-data/use-async-data-get-pets'
-import { useAsyncDataGetPetById } from '../use-async-data/use-async-data-get-pet-by-id'
-import { useAsyncDataCreatePet } from '../use-async-data/use-async-data-create-pet'
-import { useAsyncDataUpdatePet } from '../use-async-data/use-async-data-update-pet'
-import { useAsyncDataDeletePet } from '../use-async-data/use-async-data-delete-pet'
+export function usePetsConnector(
+  source: () => unknown,
+  options?: UsePetsConnectorOptions
+): UsePetsConnectorReturn
 
-const PetCreateSchema = z.object({
-  name: z.string().min(1),
-  status: z.enum(['available', 'pending', 'sold']).optional(),
-})
-
-const PetUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
-  status: z.enum(['available', 'pending', 'sold']).optional(),
-})
-
-export function usePetsConnector() {
-  const table = useListConnector(useAsyncDataGetPets, { paginated: true })
-  const detail = useDetailConnector(useAsyncDataGetPetById)
-  const createForm = useFormConnector(useAsyncDataCreatePet, { schema: PetCreateSchema })
-  const updateForm = useFormConnector(useAsyncDataUpdatePet, { schema: PetUpdateSchema, loadWith: detail })
-  const deleteAction = useDeleteConnector(useAsyncDataDeletePet)
-
-  return { table, detail, createForm, updateForm, deleteAction }
-}
+export function usePetsConnector(
+  params?: FindPetsByTagsRequest,
+  options?: UsePetsConnectorOptions
+): UsePetsConnectorReturn
 ```
+
+The first argument chooses how the list data is fetched:
+
+- **`params`** — a plain object matching the list endpoint's query parameters. The connector calls the generated composable internally.
+- **factory** — `() => useAsyncData...()` — lets you pick a different endpoint entirely or pass composable-level options like `lazy`.
+
+When neither is provided, the list endpoint is called with no parameters.
 
 ---
 
@@ -166,7 +155,16 @@ export function usePetsConnector() {
 
 ```vue
 <script setup>
+// No params — calls the list endpoint with no query parameters
 const { table, createForm, updateForm, deleteAction } = usePetsConnector()
+
+// With static params — typed against the list endpoint's request type
+const { table } = usePetsConnector({ status: 'available' })
+
+// With a factory — use a different endpoint or pass composable-level options
+const { table } = usePetsConnector(
+  () => useAsyncDataFindPetsByStatus({ status: selectedStatus.value })
+)
 
 // When the table signals "create", reset and show the form
 watch(table._createTrigger, () => {

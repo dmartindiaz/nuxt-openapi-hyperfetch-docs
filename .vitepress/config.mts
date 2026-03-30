@@ -133,6 +133,7 @@ export default defineConfig({
           text: 'Connectors',
           items: [
             { text: 'Getting Started', link: '/connectors/getting-started' },
+            { text: 'Endpoint Detection', link: '/connectors/endpoint-detection' },
             { text: 'useListConnector', link: '/connectors/use-list-connector' },
             { text: 'useFormConnector', link: '/connectors/use-form-connector' },
             { text: 'useDeleteConnector', link: '/connectors/use-delete-connector' },

@@ -2,16 +2,6 @@
 
 `useListConnector` wraps a `useAsyncData` list composable and provides everything a data table needs: rows, loading state, pagination, row selection, and action triggers to coordinate with forms and delete modals.
 
-## In the generated connector
-
-```ts
-const table = useListConnector(useAsyncDataGetPets, { paginated: true, columns: petsColumns })
-```
-
-You don't call `useListConnector` directly — the generated connector calls it for you. You use `table` in your component.
-
----
-
 ## API reference
 
 ### State
@@ -30,13 +20,16 @@ The generator infers column labels from the field names in your OpenAPI spec. Yo
 **Option 1: static map** — override specific labels by field key:
 
 ```ts
-const { table } = usePetsConnector({
-  columnLabels: {
-    name: 'Nombre',
-    status: 'Estado',
-    createdAt: 'Fecha de alta',
-  },
-})
+const { table } = usePetsConnector(
+  { status: 'available' },
+  {
+    columnLabels: {
+      name: 'Nombre',
+      status: 'Estado',
+      createdAt: 'Fecha de alta',
+    },
+  }
+)
 ```
 
 **Option 2: i18n function** — applied to every column key:
@@ -44,9 +37,10 @@ const { table } = usePetsConnector({
 ```ts
 const { t } = useI18n()
 
-const { table } = usePetsConnector({
-  columnLabel: (key) => t(`pets.columns.${key}`),
-})
+const { table } = usePetsConnector(
+  {},
+  { columnLabel: (key) => t(`pets.columns.${key}`) }
+)
 ```
 
 Priority: **`columnLabel` function** > **`columnLabels` map** > **generated label**.
@@ -100,7 +94,7 @@ These are the reactive values your component `watch`es to react to table actions
 
 ## Examples
 
-### Basic table
+### Basic table (no params)
 
 ```vue
 <script setup>
@@ -122,11 +116,38 @@ const { table } = usePetsConnector()
 </template>
 ```
 
+### With static query params
+
+```vue
+<script setup>
+// TypeScript will autocomplete and validate the params object
+const { table } = usePetsConnector({ status: 'available' })
+</script>
+```
+
+### With a factory (different endpoint or composable options)
+
+Use a factory when you need to call a different endpoint than the one the generator picked, or when you need composable-level options like `lazy`:
+
+```vue
+<script setup>
+// Use a different list endpoint
+const { table } = usePetsConnector(
+  () => useAsyncDataFindPetsByStatus({ status: 'pending' })
+)
+
+// Use the generated endpoint but with composable options
+const { table } = usePetsConnector(
+  () => useAsyncDataFindPetsByTags({ tags: ['cat', 'dog'] }, { lazy: true })
+)
+</script>
+```
+
 ### Table with pagination
 
 ```vue
 <script setup>
-const { table } = usePetsConnector()
+const { table } = usePetsConnector({ status: 'available' })
 </script>
 
 <template>
@@ -153,7 +174,7 @@ const { table } = usePetsConnector()
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 
-const { table, createForm, updateForm, deleteAction, detail } = usePetsConnector()
+const { table, createForm, updateForm, deleteAction, detail } = usePetsConnector({ status: 'available' })
 
 watch(table._createTrigger, () => {
   createForm.reset()

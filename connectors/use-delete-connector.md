@@ -2,14 +2,6 @@
 
 `useDeleteConnector` manages the confirmation flow for DELETE operations: which item is being deleted, whether the confirmation modal is open, and the state of the delete request itself.
 
-## In the generated connector
-
-```ts
-const deleteAction = useDeleteConnector(useAsyncDataDeletePet)
-```
-
----
-
 ## API reference
 
 ### State

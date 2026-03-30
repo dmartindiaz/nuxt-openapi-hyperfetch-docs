@@ -2,21 +2,6 @@
 
 `useFormConnector` manages the state of a create or update form: the reactive model, Zod validation, per-field error messages, submission, and optional auto-fill from a detail fetch.
 
-## In the generated connector
-
-The generator creates two form connectors per resource — one for create, one for update:
-
-```ts
-const createForm = useFormConnector(useAsyncDataCreatePet, { schema: PetCreateSchema, schemaOverride: createSchema })
-const updateForm = useFormConnector(useAsyncDataUpdatePet, { schema: PetUpdateSchema, schemaOverride: updateSchema, loadWith: detail })
-```
-
-`updateForm` receives `loadWith: detail`, which means it automatically pre-fills the form model whenever `detail` loads an item (e.g. when the user clicks "Edit" on a row).
-
-The `schemaOverride` option lets you extend or replace the generated Zod schema from the component — without editing the auto-generated file.
-
----
-
 ## API reference
 
 ### State
@@ -114,28 +99,34 @@ Add fields that aren’t in the spec, or tighten constraints:
 ```ts
 import { z } from 'zod'
 
-const { createForm } = usePetsConnector({
-  createSchema: (base) => base.extend({
-    email: z.string().email('Invalid email'),
-    confirmName: z.string(),
-  }),
-})
+const { createForm } = usePetsConnector(
+  {},
+  {
+    createSchema: (base) => base.extend({
+      email: z.string().email('Invalid email'),
+      confirmName: z.string(),
+    }),
+  }
+)
 ```
 
 ### Adding cross-field validation with `.refine()`
 
 ```ts
-const { createForm } = usePetsConnector({
-  createSchema: (base) => base.refine(
-    (data) => data.name !== 'unknown',
-    { message: 'Name cannot be "unknown"', path: ['name'] }
-  ),
-  updateSchema: (base) => base.superRefine((data, ctx) => {
-    if (data.status === 'sold' && !data.soldAt) {
-      ctx.addIssue({ code: 'custom', path: ['soldAt'], message: 'Required when status is sold' })
-    }
-  }),
-})
+const { createForm } = usePetsConnector(
+  {},
+  {
+    createSchema: (base) => base.refine(
+      (data) => data.name !== 'unknown',
+      { message: 'Name cannot be "unknown"', path: ['name'] }
+    ),
+    updateSchema: (base) => base.superRefine((data, ctx) => {
+      if (data.status === 'sold' && !data.soldAt) {
+        ctx.addIssue({ code: 'custom', path: ['soldAt'], message: 'Required when status is sold' })
+      }
+    }),
+  }
+)
 ```
 
 ### Replacing the schema entirely
@@ -149,7 +140,7 @@ const mySchema = z.object({
   internalCode: z.string().regex(/^[A-Z]{3}\d{4}$/),
 })
 
-const { createForm } = usePetsConnector({ createSchema: mySchema })
+const { createForm } = usePetsConnector({}, { createSchema: mySchema })
 ```
 
 Priority: **`createSchema` / `updateSchema` override** > **generated schema**.
