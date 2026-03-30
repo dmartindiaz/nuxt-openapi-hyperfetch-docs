@@ -74,25 +74,76 @@ useFetchGetPets({}, {
 })
 ```
 
-## patterns (URL Filter)
+## methods (HTTP Method Filter)
 
-Add a `patterns` array to `globalCallbacks` to restrict all global callbacks to specific URLs. Uses glob-style matching.
+Add a `methods` array to a rule to restrict it to specific HTTP verbs. Accepts any uppercase HTTP method name.
 
 ```typescript
 // plugins/api-callbacks.ts
-const globalCallbacks = {
-  patterns: ['/api/private/**', '/api/admin/**'],
-  onRequest: ({ headers }) => {
-    const token = useCookie('auth-token').value
-    return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => [
+        // Only runs after DELETE requests
+        {
+          methods: ['DELETE'],
+          onSuccess: () => useToast().success('Deleted successfully'),
+        },
+        // Only runs before write operations
+        {
+          methods: ['POST', 'PUT', 'PATCH'],
+          onRequest: ({ headers }) => ({
+            headers: { ...headers, 'X-Write-Op': '1' },
+          }),
+        },
+      ],
+    },
   }
+})
+```
+
+When `methods` is set on a rule, the rule is silently skipped for requests using a different method. A rule without `methods` runs for all HTTP methods.
+
+## patterns (URL Filter)
+
+Add a `patterns` array to a rule to restrict it to specific URLs. Uses glob-style matching.
+
+```typescript
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => [
+        {
+          patterns: ['/api/private/**', '/api/admin/**'],
+          onRequest: ({ headers }) => {
+            const token = useCookie('auth-token').value
+            return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
+          },
+        },
+      ],
+    },
+  }
+})
+```
+
+When `patterns` is set on a rule, the rule is silently skipped for URLs that don't match. A rule without `patterns` runs for all URLs.
+
+`methods` and `patterns` can be combined on the same rule — both filters must match for the rule to run:
+
+```typescript
+// Only adds auth header on GET requests to /api/private/**
+{
+  patterns: ['/api/private/**'],
+  methods: ['GET'],
+  onRequest: ({ headers }) => ({
+    headers: { ...headers, 'Authorization': `Bearer ${token}` },
+  }),
 }
 ```
 
-When `patterns` is set, global callbacks are silently skipped for URLs that don't match.
-
 ::: tip
-Use `patterns` when global callbacks should apply to a defined group of routes. Use `skipGlobalCallbacks` per composable call for one-off exceptions.
+Use `patterns` and `methods` on individual rules to scope them precisely. Use `skipGlobalCallbacks` per composable call for one-off exceptions.
 :::
 
 ## Execution Flow

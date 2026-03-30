@@ -9,7 +9,9 @@ This guide covers everything you need to know about using nuxt-openapi-hyperfetc
 ### Getting Started
 
 - **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** - Understand what this tool does and why you should use it
-- **[Getting Started](./getting-started)** - Install and create your first composables
+- **[Getting Started](./getting-started)** - Fast setup with the two available workflows
+- **[Use as Nuxt Module](./use-as-nuxt-module)** - Configure generation in `nuxt.config.ts`
+- **[Use as CLI](./use-as-cli)** - Full CLI installation, commands, and examples
 - **[Core Concepts](./core-concepts)** - Learn the fundamental concepts
 
 ### Usage
@@ -21,13 +23,10 @@ This guide covers everything you need to know about using nuxt-openapi-hyperfetc
 
 ```bash
 # Install
-npm install -D nuxt-openapi-hyperfetch
+npm install nuxt-openapi-hyperfetch
 
-# Generate client composables
+# CLI workflow
 npx nxh generate -i swagger.yaml -o ./composables
-
-# Generate server composables
-echo nuxtServer | npx nxh generate -i swagger.yaml -o ./server/composables
 ```
 
 ## Key Features
@@ -43,11 +42,13 @@ echo nuxtServer | npx nxh generate -i swagger.yaml -o ./server/composables
 We recommend following this path:
 
 1. Start with **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** to understand the basics
-2. Follow the **[Getting Started](./getting-started)** guide to install and generate your first composables
-3. Read **[Core Concepts](./core-concepts)** to understand how it works
-4. Learn about **[Generating Composables](./generating-composables)** in detail
-5. Explore the **[Composables](/composables/)** section for detailed API documentation
-6. Check out the **[Composables](/composables/)** section for all API details
+2. Follow **[Getting Started](./getting-started)** and choose your workflow
+3. If you use Nuxt module mode, continue with **[Use as Nuxt Module](./use-as-nuxt-module)**
+4. If you use terminal-first mode, continue with **[Use as CLI](./use-as-cli)**
+5. Read **[Core Concepts](./core-concepts)** to understand how it works
+6. Learn about **[Generating Composables](./generating-composables)** in detail
+7. Explore the **[Composables](/composables/)** section for detailed API documentation
+8. Check out the **[Composables](/composables/)** section for all API details
 
 ## Need Help?
 
@@ -60,4 +61,6 @@ Ready to get started?
 
 - [What is Nuxt OpenAPI Hyperfetch? →](./what-is-nuxt-openapi-hyperfetch)
 - [Getting Started →](./getting-started)
+- [Use as Nuxt Module →](./use-as-nuxt-module)
+- [Use as CLI →](./use-as-cli)
 - [Core Concepts →](./core-concepts)

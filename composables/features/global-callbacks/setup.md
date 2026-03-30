@@ -1,4 +1,4 @@
-﻿# Global Callbacks Setup
+# Global Callbacks Setup
 
 Global callbacks are configured in `plugins/api-callbacks.ts`. You need to **create this file manually** in your Nuxt project.
 
@@ -27,7 +27,7 @@ The `provide: { getGlobalApiCallbacks: () => globalCallbacks }` block is mandato
 
 ## Authentication
 
-The most common use case â€” add an auth token to every request and redirect on 401:
+The most common use case � add an auth token to every request and redirect on 401:
 
 ```typescript
 // plugins/api-callbacks.ts
@@ -102,7 +102,7 @@ Use any Nuxt composable at the plugin level (not inside the callbacks):
 ```typescript
 // plugins/api-callbacks.ts
 export default defineNuxtPlugin(() => {
-  const authStore = useAuthStore() // âœ… Call composables here
+  const authStore = useAuthStore() // �S& Call composables here
   const { locale } = useI18n()
 
   const globalCallbacks = {
@@ -151,7 +151,7 @@ export default defineNuxtConfig({
 Use Nuxt file suffixes to restrict where the plugin runs:
 
 ```typescript
-// plugins/api-callbacks.client.ts â€” client only
+// plugins/api-callbacks.client.ts � client only
 export default defineNuxtPlugin(() => {
   const globalCallbacks = {
     onRequest: ({ headers }) => {
@@ -183,15 +183,15 @@ export default defineNuxtPlugin(() => {
 
 ## Best Practices
 
-### âœ… Do
+### �S& Do
 
 ```typescript
-// âœ… Return modifications from onRequest
+// �S& Return modifications from onRequest
 onRequest: ({ headers }) => {
   return { headers: { ...headers, 'X-Custom': 'value' } }
 }
 
-// âœ… Return false to cancel local callback execution
+// �S& Return false to cancel local callback execution
 onError: (error) => {
   if (error.status === 401) {
     navigateTo('/login')
@@ -199,9 +199,9 @@ onError: (error) => {
   }
 }
 
-// âœ… Call composables at plugin level, not inside callbacks
+// �S& Call composables at plugin level, not inside callbacks
 export default defineNuxtPlugin(() => {
-  const store = useAuthStore() // âœ… here
+  const store = useAuthStore() // �S& here
   const globalCallbacks = {
     onRequest: () => {
       store.token // use it here
@@ -210,26 +210,26 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-### âŒ Don't
+### �R Don't
 
 ```typescript
-// âŒ Don't mutate headers directly â€” won't work
+// �R Don't mutate headers directly � won't work
 onRequest: ({ headers }) => {
-  headers['Authorization'] = 'Bearer token' // âŒ
+  headers['Authorization'] = 'Bearer token' // �R
 }
 
-// âŒ Don't call composables inside callbacks
+// �R Don't call composables inside callbacks
 onRequest: ({ headers }) => {
-  const store = useAuthStore() // âŒ Call this at plugin level instead
+  const store = useAuthStore() // �R Call this at plugin level instead
 }
 
-// âŒ Don't make async API calls inside callbacks
+// �R Don't make async API calls inside callbacks
 onRequest: async () => {
-  await $fetch('/other-endpoint') // âŒ Race conditions
+  await $fetch('/other-endpoint') // �R Race conditions
 }
 ```
 
 ## Next Steps
 
-- [Control Options â†’](/composables/features/global-callbacks/control-options)
-- [URL Patterns â†’](/composables/features/global-callbacks/patterns)
+- [Control Options � ](/composables/features/global-callbacks/control-options)
+- [URL Patterns � ](/composables/features/global-callbacks/patterns)

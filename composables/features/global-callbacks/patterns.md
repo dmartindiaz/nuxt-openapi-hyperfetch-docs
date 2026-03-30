@@ -2,28 +2,72 @@
 
 URL-based control is available in two forms:
 
-1. The `patterns` array in `globalCallbacks` — apply all global callbacks only to matching URLs
+1. The `patterns` array on a rule — restrict that rule to specific URL globs
 2. URL conditions inside individual callbacks — fine-grained per-callback logic
 
 ## Using the patterns Array
 
-Set `patterns` in your `globalCallbacks` object to restrict ALL global callbacks to specific URL globs:
+Set `patterns` on a rule to restrict it to specific URL globs. The rule is silently skipped for all other URLs.
+
+### Single rule
 
 ```typescript
 // plugins/api-callbacks.ts
 export default defineNuxtPlugin(() => {
-  const globalCallbacks = {
-    patterns: ['/api/private/**', '/api/admin/**'],
-    onRequest: ({ headers }) => {
-      const token = useCookie('auth-token').value
-      return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
-    }
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => ({
+        patterns: ['/api/private/**', '/api/admin/**'],
+        onRequest: ({ headers }) => {
+          const token = useCookie('auth-token').value
+          return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
+        },
+      }),
+    },
   }
-  return { provide: { getGlobalApiCallbacks: () => globalCallbacks } }
 })
 ```
 
-All global callbacks (onRequest, onSuccess, onError, onFinish) are silently skipped when the URL doesn't match any pattern.
+### Multiple rules with different patterns
+
+Pass an array of rules to apply different logic to different URL groups:
+
+```typescript
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => [
+        // Add auth to all private routes
+        {
+          patterns: ['/api/private/**'],
+          onRequest: ({ headers }) => {
+            const token = useCookie('auth-token').value
+            return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
+          },
+        },
+        // Add billing key to billing routes
+        {
+          patterns: ['/api/billing/**'],
+          onRequest: ({ headers }) => ({
+            headers: { ...headers, 'X-Billing-Key': useBillingStore().apiKey },
+          }),
+        },
+        // Global error handler with no pattern filter — runs for all URLs
+        {
+          onError: (error) => {
+            if (error.status === 503) useToast().error('Service unavailable')
+          },
+        },
+      ],
+    },
+  }
+})
+```
+
+All rules are evaluated independently. A request to `/api/billing/invoices` matches the second rule but not the first; the third rule matches because it has no pattern filter.
+
+All four callbacks (`onRequest`, `onSuccess`, `onError`, `onFinish`) are silently skipped for a rule when the URL doesn't match its `patterns`.
 
 ## Filtering Inside Callbacks
 
@@ -78,11 +122,17 @@ const globalCallbacks = {
 ## Best Practices
 
 ```typescript
-// ✅ Use patterns when the same logic applies to a named group of routes
-const globalCallbacks = {
+// ✅ Use a rule with patterns when the same logic applies to a named group of routes
+getGlobalApiCallbacks: () => ({
   patterns: ['/api/private/**'],
   onRequest: ({ headers }) => { ... }
-}
+})
+
+// ✅ Use multiple rules with patterns for different route groups
+getGlobalApiCallbacks: () => [
+  { patterns: ['/api/private/**'], onRequest: ({ headers }) => { ... } },
+  { patterns: ['/api/billing/**'], onRequest: ({ headers }) => { ... } },
+]
 
 // ✅ Use url conditions inside callbacks for fine-grained logic
 onRequest: ({ url, headers }) => {

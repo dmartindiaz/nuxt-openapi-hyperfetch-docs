@@ -77,7 +77,8 @@ The `globalCallbacks` object supports the same four lifecycle callbacks as local
 ```typescript
 const globalCallbacks = {
   onRequest: ({ url, headers, body, query }) => {
-    // Before every request — return modifications to apply them
+    // Before every request
+    // Return { headers, body, query } to modify the request
     return { headers: { ...headers, 'X-Request-ID': crypto.randomUUID() } }
   },
   onSuccess: (data, context) => {
@@ -85,17 +86,70 @@ const globalCallbacks = {
   },
   onError: (error, context) => {
     // After every failed request
-    // Return false to prevent local onError from running
+    // Return false to prevent the local onError from running
   },
   onFinish: ({ success, data, error }) => {
-    // After every request (success or failure)
+    // After every request regardless of success or failure
   }
 }
 ```
 
-::: tip onSuccess and onError receive a second `context` parameter
-Unlike local callbacks, the global `onSuccess` and `onError` receive an optional `context` object with request metadata.
-:::
+## Multiple Rules
+
+Pass an array of rules instead of a single object to apply different logic to different endpoints. Each rule runs independently — they are not mutually exclusive.
+
+```typescript
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => [
+        // Rule 1: add auth header to all requests
+        {
+          onRequest: ({ headers }) => {
+            const token = useCookie('auth-token').value
+            if (token) return { headers: { ...headers, Authorization: `Bearer ${token}` } }
+          },
+        },
+        // Rule 2: show a toast on every DELETE success
+        {
+          methods: ['DELETE'],
+          onSuccess: () => useToast().success('Deleted successfully'),
+        },
+        // Rule 3: handle 401 globally, only on private routes
+        {
+          patterns: ['/api/private/**'],
+          onError: (error) => {
+            if (error.status === 401) {
+              navigateTo('/login')
+              return false // suppress local onError
+            }
+          },
+        },
+      ],
+    },
+  }
+})
+```
+
+All rules are evaluated in order. **For `onRequest`**, headers and query from all rules are deep-merged; body is last-write-wins; local modifications take the highest priority.
+
+## Rule Filters
+
+Each rule can be scoped with `patterns` (URL globs) and `methods` (HTTP verbs). A rule only runs when **all** its filters match.
+
+```typescript
+[
+  // Only runs for GET and POST on /api/v2/**
+  {
+    patterns: ['/api/v2/**'],
+    methods: ['GET', 'POST'],
+    onRequest: ({ headers }) => ({ headers: { ...headers, 'X-Version': '2' } }),
+  },
+]
+```
+
+A rule with no filters runs for every request.
 
 ## Execution Order
 

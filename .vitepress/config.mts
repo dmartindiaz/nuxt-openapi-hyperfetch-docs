@@ -17,6 +17,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/' },
       { text: 'Composables', link: '/composables/' },
       { text: 'Server', link: '/server/' },
+      { text: 'Connectors', link: '/connectors/getting-started' },
     ],
 
     sidebar: {
@@ -27,6 +28,8 @@ export default defineConfig({
             { text: 'Overview', link: '/guide/' },
             { text: 'What is Nuxt OpenAPI Hyperfetch?', link: '/guide/what-is-nuxt-openapi-hyperfetch' },
             { text: 'Getting Started', link: '/guide/getting-started' },
+            { text: 'Use as Nuxt Module', link: '/guide/use-as-nuxt-module' },
+            { text: 'Use as CLI', link: '/guide/use-as-cli' },
             { text: 'Core Concepts', link: '/guide/core-concepts' },
           ],
         },
@@ -59,6 +62,7 @@ export default defineConfig({
           items: [
             { text: 'Introduction', link: '/composables/use-async-data/' },
             { text: 'Basic Usage', link: '/composables/use-async-data/basic-usage' },
+            { text: 'Pagination', link: '/composables/use-async-data/pagination' },
             { text: 'Raw Responses', link: '/composables/use-async-data/raw-responses' },
             { text: 'vs useFetch', link: '/composables/use-async-data/vs-use-fetch' },
           ],
@@ -68,7 +72,6 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Overview', link: '/composables/features/' },
-            { text: 'Configuration File', link: '/composables/features/configuration' },
             {
               text: 'Callbacks',
               collapsed: true,
@@ -121,6 +124,19 @@ export default defineConfig({
             { text: 'Permission Flags', link: '/server/transformers/permissions' },
             { text: 'Filtering Data', link: '/server/transformers/filtering' },
             { text: 'Combining Sources', link: '/server/transformers/combining' },
+          ],
+        },
+      ],
+
+      '/connectors/': [
+        {
+          text: 'Connectors',
+          items: [
+            { text: 'Getting Started', link: '/connectors/getting-started' },
+            { text: 'useListConnector', link: '/connectors/use-list-connector' },
+            { text: 'useFormConnector', link: '/connectors/use-form-connector' },
+            { text: 'useDeleteConnector', link: '/connectors/use-delete-connector' },
+            { text: 'Full CRUD Example', link: '/connectors/full-example' },
           ],
         },
       ],

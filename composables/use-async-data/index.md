@@ -134,6 +134,7 @@ const totalCount = computed(() => {
 ## Learn More
 
 - [Basic Usage →](/composables/use-async-data/basic-usage)
+- [Pagination →](/composables/use-async-data/pagination)
 - [Raw Responses →](/composables/use-async-data/raw-responses)
 - [useFetch vs useAsyncData →](/composables/use-async-data/vs-use-fetch)
 - [Shared Features →](/composables/features/)

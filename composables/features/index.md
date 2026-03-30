@@ -49,7 +49,7 @@ export default {
 The configuration file is specific to the CLI. It controls code generation and sets the base URL for client composables (useFetch and useAsyncData only).
 :::
 
-[Learn more about configuration →](/composables/features/configuration)
+[Learn more about CLI configuration →](/guide/use-as-cli#cli-config-file-nxh-config)
 
 ## Callbacks
 

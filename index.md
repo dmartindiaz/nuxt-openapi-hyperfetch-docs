@@ -45,6 +45,25 @@ features:
     details: Route files update automatically when your spec changes. Your auth context and transformers are never touched.
 ---
 
+## How to Start
+
+Choose one of these two workflows:
+
+### 1. Use with npx (no installation)
+
+```bash
+npx nuxt-openapi-hyperfetch generate
+```
+
+### 2. Install first, then run `nxh`
+
+Install the package (project or global), then run:
+
+```bash
+npm install nuxt-openapi-hyperfetch
+nxh generate
+```
+
 ## What gets generated
 
 Run the CLI and pick your generators:
@@ -102,25 +121,35 @@ export async function transformPet<T = any>(
 
 <div class="vp-doc">
 
-### You stop writing boilerplate
+<details>
+  <summary><strong>You stop writing boilerplate</strong></summary>
 
 Every endpoint in your OpenAPI spec becomes a ready-to-use composable or server route. If your spec has 40 endpoints, you get 40 typed composables with one command.
+</details>
 
-### Nuxt-native, but enhanced
+<details>
+  <summary><strong>Nuxt-native, but enhanced</strong></summary>
 
-Generated composables use Nuxt's own `useFetch` and `useAsyncData` under the hood — fully SSR-compatible, works in components and pages without any setup. On top of that, you get lifecycle callbacks (`onRequest`, `onSuccess`, `onError`, `onFinish`), `pick` to trim the response, global callback plugins, and request interception. All the SSR guarantees of Nuxt, with more control where you need it.
+Generated composables use Nuxt's own `useFetch` and `useAsyncData` under the hood - fully SSR-compatible, works in components and pages without any setup. On top of that, you get lifecycle callbacks (`onRequest`, `onSuccess`, `onError`, `onFinish`), `pick` to trim the response, global callback plugins, and request interception. All the SSR guarantees of Nuxt, with more control where you need it.
+</details>
 
-### Raw responses when you need them
+<details>
+  <summary><strong>Raw responses when you need them</strong></summary>
 
-The `useAsyncData` generator exposes raw response access — read status codes, response headers, and the full HTTP response before it hits your component. Useful for pagination headers, `ETag` caching, or any API that communicates via headers.
+The `useAsyncData` generator exposes raw response access - read status codes, response headers, and the full HTTP response before it hits your component. Useful for pagination headers, `ETag` caching, or any API that communicates via headers.
+</details>
 
-### Your API keys never reach the browser
+<details>
+  <summary><strong>Your API keys never reach the browser</strong></summary>
 
 In BFF mode, credentials live in Nuxt `runtimeConfig` and are only used in server routes. The client calls `/api/pet`, not your backend directly.
+</details>
 
-### Your custom logic survives regeneration
+<details>
+  <summary><strong>Your custom logic survives regeneration</strong></summary>
 
-Transformers and auth context are generated once. When you regenerate after a spec update, only the route files change — your business logic is untouched.
+Transformers and auth context are generated once. When you regenerate after a spec update, only the route files change - your business logic is untouched.
+</details>
 
 </div>
 
