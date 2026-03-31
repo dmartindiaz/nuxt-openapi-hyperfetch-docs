@@ -17,7 +17,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/' },
       { text: 'Composables', link: '/composables/' },
       { text: 'Server', link: '/server/' },
-      { text: 'Connectors', link: '/connectors/getting-started' },
+      { text: 'Connectors', link: '/connectors/' },
     ],
 
     sidebar: {
@@ -132,12 +132,14 @@ export default defineConfig({
         {
           text: 'Connectors',
           items: [
-            { text: 'Getting Started', link: '/connectors/getting-started' },
-            { text: 'Endpoint Detection', link: '/connectors/endpoint-detection' },
-            { text: 'useListConnector', link: '/connectors/use-list-connector' },
-            { text: 'useFormConnector', link: '/connectors/use-form-connector' },
-            { text: 'useDeleteConnector', link: '/connectors/use-delete-connector' },
-            { text: 'Full CRUD Example', link: '/connectors/full-example' },
+            { text: 'Overview', link: '/connectors/' },
+            { text: 'OpenAPI Conventions', link: '/connectors/openapi-conventions' },
+            { text: 'getAll', link: '/connectors/get-all' },
+            { text: 'get', link: '/connectors/get' },
+            { text: 'create', link: '/connectors/create' },
+            { text: 'update', link: '/connectors/update' },
+            { text: 'delete', link: '/connectors/delete' },
+            { text: 'Callbacks', link: '/connectors/callbacks' },
           ],
         },
       ],
