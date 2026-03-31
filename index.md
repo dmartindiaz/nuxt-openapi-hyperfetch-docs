@@ -3,51 +3,51 @@ layout: home
 
 hero:
   name: Nuxt OpenAPI Hyperfetch
-  text: Generate API Code for Nuxt
-  tagline: Point it at your OpenAPI spec and get fully typed useFetch composables, useAsyncData composables, or Nuxt server routes — ready to use, nothing to write by hand.
+  text: Generate ready-to-use composables for Nuxt
+  tagline: Point it at your OpenAPI spec and get fully typed useFetch composables, useAsyncData composables, Nuxt server routes, and headless UI connectors — ready to use, nothing to write by hand.
   image:
     src: /logo.png
     alt: Nuxt OpenAPI Hyperfetch
   actions:
     - theme: brand
-      text: Get Started
+      text: 🚀 Get started
       link: /guide/getting-started
     - theme: alt
-      text: View on npm
+      text: 📦 View on npm
       link: https://www.npmjs.com/package/nuxt-openapi-hyperfetch
     - theme: alt
-      text: ⭐ Star on GitHub
+      text: 🐙 View on GitHub
       link: https://github.com/dmartindiaz/nuxt-openapi-hyperfetch
 
 features:
   - icon: ⚙️
-    title: Three generators, one CLI
-    details: Choose useFetch, useAsyncData, or Nuxt server routes (BFF mode). Mix and match per project.
+    title: One CLI, full API layer
+    details: Generate useFetch, useAsyncData, Nuxt server routes, and connectors from one OpenAPI spec.
 
   - icon: 🎯
-    title: Fully typed, no manual effort
-    details: Types are derived directly from your OpenAPI schemas. Parameters, request bodies, and responses are all typed automatically.
+    title: Types from your OpenAPI
+    details: Request params, bodies, and responses are inferred automatically. No manual type maintenance.
 
   - icon: 🟢
-    title: Nuxt-native output
-    details: Generated composables wrap Nuxt's own useFetch and useAsyncData. No new APIs to learn, no runtime dependencies.
+    title: Nuxt-native composables
+    details: Generated wrappers use Nuxt's useFetch and useAsyncData, so the API feels native from day one.
 
-  - icon: 🔄
-    title: Lifecycle callbacks
-    details: Every composable exposes onRequest, onSuccess, onError, and onFinish. Define them per call or globally in a plugin.
+  - icon: 🧩
+    title: Headless UI connectors
+    details: Get getAll, get, create, update, and delete flows per resource, ready for tables, forms, and dialogs.
 
   - icon: 🔒
-    title: BFF mode — credentials stay on the server
-    details: Server routes proxy your backend with API keys from runtimeConfig. Auth context and response transformers are generated once and never overwritten.
+    title: Server-first security with BFF
+    details: Keep secrets on the server with generated Nuxt routes, auth context, and transformers.
 
   - icon: ♻️
-    title: Safe to regenerate
-    details: Route files update automatically when your spec changes. Your auth context and transformers are never touched.
+    title: Safe regeneration workflow
+    details: Re-generate when the spec changes without losing your custom auth and transformer code.
 ---
 
 ## How to Start
 
-Choose one of these two workflows:
+Choose one workflow:
 
 ### 1. Use with npx (no installation)
 
@@ -57,14 +57,23 @@ npx nuxt-openapi-hyperfetch generate
 
 ### 2. Install first, then run `nxh`
 
-Install the package (project or global), then run:
+Install the package, then run:
 
 ```bash
 npm install nuxt-openapi-hyperfetch
 nxh generate
 ```
 
-## What gets generated
+## What You Get
+
+From one OpenAPI spec, you can generate:
+
+- `useFetch` composables
+- `useAsyncData` composables
+- Nuxt server routes (`nuxtServer`)
+- Headless CRUD connectors
+
+## Generated Composables and Server Routes
 
 Run the CLI and pick your generators:
 
@@ -117,39 +126,28 @@ export async function transformPet<T = any>(
 }
 ```
 
-## Why use this CLI?
+## Connectors (Headless CRUD)
 
 <div class="vp-doc">
 
-<details>
-  <summary><strong>You stop writing boilerplate</strong></summary>
+A connector groups CRUD behavior for one resource in one composable.
 
-Every endpoint in your OpenAPI spec becomes a ready-to-use composable or server route. If your spec has 40 endpoints, you get 40 typed composables with one command.
-</details>
+```ts
+const { getAll, get, create, update, del } = usePetsConnector()
+```
 
-<details>
-  <summary><strong>Nuxt-native, but enhanced</strong></summary>
+This gives you a clean base for tables, detail views, forms, and delete flows without wiring each operation manually.
 
-Generated composables use Nuxt's own `useFetch` and `useAsyncData` under the hood - fully SSR-compatible, works in components and pages without any setup. On top of that, you get lifecycle callbacks (`onRequest`, `onSuccess`, `onError`, `onFinish`), `pick` to trim the response, global callback plugins, and request interception. All the SSR guarantees of Nuxt, with more control where you need it.
-</details>
+- `getAll`: list with SSR (`useAsyncData`)
+- `get`: load one item by ID
+- `create`: validated create form
+- `update`: validated update form
+- `del`: staged delete with confirmation
 
-<details>
-  <summary><strong>Raw responses when you need them</strong></summary>
+Read more:
 
-The `useAsyncData` generator exposes raw response access - read status codes, response headers, and the full HTTP response before it hits your component. Useful for pagination headers, `ETag` caching, or any API that communicates via headers.
-</details>
-
-<details>
-  <summary><strong>Your API keys never reach the browser</strong></summary>
-
-In BFF mode, credentials live in Nuxt `runtimeConfig` and are only used in server routes. The client calls `/api/pet`, not your backend directly.
-</details>
-
-<details>
-  <summary><strong>Your custom logic survives regeneration</strong></summary>
-
-Transformers and auth context are generated once. When you regenerate after a spec update, only the route files change - your business logic is untouched.
-</details>
+- [Connectors Overview](/connectors/)
+- [OpenAPI Conventions for Connectors](/connectors/openapi-conventions)
 
 </div>
 
@@ -160,5 +158,6 @@ Transformers and auth context are generated once. When you regenerate after a sp
 - **New here?** Start with the [Getting Started Guide](/guide/getting-started)
 - **Choosing a generator?** Read [useFetch vs useAsyncData vs Server Routes](/guide/choosing-a-generator)
 - **Building with BFF mode?** Go to [Server Routes](/server/)
+- **Using connectors?** Start at [Connectors](/connectors/)
 
 </div>
