@@ -134,6 +134,7 @@ export default defineConfig({
           items: [
             { text: 'Overview', link: '/connectors/' },
             { text: 'OpenAPI Conventions', link: '/connectors/openapi-conventions' },
+            { text: 'Connector Configuration', link: '/connectors/connector-configuration' },
             { text: 'getAll', link: '/connectors/get-all' },
             { text: 'get', link: '/connectors/get' },
             { text: 'create', link: '/connectors/create' },
