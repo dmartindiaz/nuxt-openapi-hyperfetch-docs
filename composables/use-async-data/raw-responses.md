@@ -1,419 +1,95 @@
 # Raw Responses
 
-Access full HTTP response details including status codes, headers, and raw data using the `Raw` variant of generated composables.
+The generated `Raw` variant of `useAsyncData` returns the response body together with `headers`, `status`, and `statusText`.
 
-## Overview
+## Response shape
 
-Every `useAsyncData` composable has a **Raw variant** that returns the complete response object:
+```ts
+interface RawResponse<T> {
+  data: T
+  headers: Headers
+  status: number
+  statusText: string
+}
+```
 
-```typescript
-// Standard variant - returns data only
-const { data: pets } = useAsyncDataGetPets()
+## Basic usage
 
-// Raw variant - returns full response with headers and status
+```ts
 const { data: response } = useAsyncDataGetPetsRaw()
+
+console.log(response.value?.status)
+console.log(response.value?.headers.get('X-Total-Count'))
+console.log(response.value?.data)
 ```
 
-::: tip CLI Addition - Not in Nuxt
-**Important**: Nuxt's native `useAsyncData` does NOT return response headers or status codes.
+## Custom cache identity
 
-Our CLI's **Raw variant** adds this capability, giving you access to:
-- ✅ `headers` - Full Headers object
-- ✅ `status` - HTTP status code (200, 404, etc.)
-- ✅ `statusText` - Status message ("OK", "Not Found", etc.)
-- ✅ `data` - Response data (just like standard variant)
-
-This is especially useful for:
-- Pagination information in headers
-- Rate limiting headers
-- ETags for caching
-- Custom API metadata
-:::
-
-## Generated Raw Composables
-
-For each operation, two composables are generated:
-
-```typescript
-// Standard - returns only data
-export function useAsyncDataGetPets(
-  params?: {},
-  options?: ApiAsyncDataOptions<Pet[]>,
-  customKey?: string
-) {
-  return useApiAsyncData<Pet[]>('/pets', { method: 'GET', ...options }, customKey)
-}
-
-// Raw (adds "Raw" suffix) - returns full response
-export function useAsyncDataGetPetsRaw(
-  params?: {},
-  options?: ApiAsyncDataOptions<RawResponse<Pet[]>>,
-  customKey?: string
-) {
-  return useApiAsyncDataRaw<Pet[]>('/pets', { method: 'GET', ...options }, customKey)
-}
-```
-
-By default, keys are auto-generated from operation + resolved URL + params.
-
-- `useAsyncDataGetPetById-/pet/1`
-- `useAsyncDataGetPetById-/pet/2`
-- `useAsyncDataFindPetsByStatus-/pet/findByStatus-{"status":"available"}`
-- `useAsyncDataGetInventory-/store/inventory`
-
-You can override with a custom key if you want intentional cache sharing:
-
-```typescript
+```ts
 const { data: response } = useAsyncDataFindPetsByStatusRaw(
-  { status: 'available' },
-  undefined,
-  'mi-clave'
+  { query: { status: 'available' } },
+  {
+    cacheKey: 'pets-available-raw',
+  }
 )
 ```
 
-## Response Structure
+## ETag example
 
-Raw responses have this structure:
+```ts
+const etag = ref<string | null>(null)
 
-```typescript
-interface RawResponse<T> {
-  status: number           // HTTP status code (200, 404, etc.)
-  statusText: string       // Status text ("OK", "Not Found", etc.)
-  headers: Headers         // Response headers
-  data: T                  // Actual response data
-}
-```
-
-## Basic Usage
-
-### Accessing Status Code
-
-```vue
-<script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw()
-
-watch(response, (res) => {
-  if (res) {
-    console.log('Status:', res.status) // 200, 404, 500, etc.
-    
-    if (res.status === 200) {
-      console.log('Success!')
-    } else if (res.status === 404) {
-      console.log('Not found')
+const { data: response } = useAsyncDataGetPetsRaw({}, {
+  onRequest: ({ headers }) => {
+    if (!etag.value) {
+      return
     }
+
+    return {
+      headers: {
+        ...headers,
+        'If-None-Match': etag.value,
+      },
+    }
+  },
+})
+
+watch(response, (value) => {
+  const nextEtag = value?.headers.get('ETag')
+  if (nextEtag) {
+    etag.value = nextEtag
   }
 })
-</script>
-
-<template>
-  <div>
-    <p>HTTP Status: {{ response?.status }}</p>
-    <ul>
-      <li v-for="pet in response?.data" :key="pet.id">
-        {{ pet.name }}
-      </li>
-    </ul>
-  </div>
-</template>
 ```
 
-### Accessing Headers
+## Header-driven metadata
 
-```vue
-<script setup lang="ts">
+```ts
 const { data: response } = useAsyncDataGetPetsRaw()
 
 const rateLimit = computed(() => {
-  if (!response.value) return null
-  
+  if (!response.value) {
+    return null
+  }
+
   return {
     limit: response.value.headers.get('X-RateLimit-Limit'),
     remaining: response.value.headers.get('X-RateLimit-Remaining'),
-    reset: response.value.headers.get('X-RateLimit-Reset')
   }
 })
-</script>
-
-<template>
-  <div>
-    <p v-if="rateLimit">
-      Rate Limit: {{ rateLimit.remaining }} / {{ rateLimit.limit }}
-    </p>
-    <ul>
-      <li v-for="pet in response?.data" :key="pet.id">
-        {{ pet.name }}
-      </li>
-    </ul>
-  </div>
-</template>
 ```
 
-## Common Use Cases
+## When to use it
 
-### Pagination Headers
+Use the raw variant when you need:
 
-Many APIs return pagination info in headers:
+- Response headers
+- HTTP status codes
+- Rate-limit metadata
+- ETags
+- Any other response metadata beyond the body
 
-```vue
-<script setup lang="ts">
-const page = ref(1)
+## Related guides
 
-const { data: response, refresh } = useAsyncDataGetPetsRaw(
-  { page: page.value }
-)
-
-const pagination = computed(() => {
-  if (!response.value) return null
-  
-  return {
-    total: Number(response.value.headers.get('X-Total-Count')),
-    page: Number(response.value.headers.get('X-Page')),
-    perPage: Number(response.value.headers.get('X-Per-Page')),
-    totalPages: Number(response.value.headers.get('X-Total-Pages'))
-  }
-})
-
-const nextPage = () => {
-  page.value++
-  refresh()
-}
-
-const prevPage = () => {
-  if (page.value > 1) {
-    page.value--
-    refresh()
-  }
-}
-</script>
-
-<template>
-  <div>
-    <ul>
-      <li v-for="pet in response?.data" :key="pet.id">
-        {{ pet.name }}
-      </li>
-    </ul>
-    
-    <div v-if="pagination" class="pagination">
-      <button @click="prevPage" :disabled="page === 1">Previous</button>
-      <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
-      <button @click="nextPage" :disabled="page >= pagination.totalPages">
-        Next
-      </button>
-    </div>
-  </div>
-</template>
-```
-
-### ETags for Caching
-
-```vue
-<script setup lang="ts">
-const etag = ref<string | null>(null)
-
-const { data: response, refresh } = useAsyncDataGetPetsRaw(
-  {},
-  {
-    onRequest: ({ headers }) => {
-      // Send If-None-Match if we have an ETag
-      if (etag.value) {
-        headers['If-None-Match'] = etag.value
-      }
-    }
-  }
-)
-
-watch(response, (res) => {
-  if (res) {
-    // Store new ETag
-    const newEtag = res.headers.get('ETag')
-    if (newEtag) {
-      etag.value = newEtag
-    }
-    
-    // Check if cached (304 status)
-    if (res.status === 304) {
-      console.log('Using cached data')
-    }
-  }
-})
-</script>
-```
-
-### Rate Limiting
-
-```vue
-<script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw()
-
-const rateLimitStatus = computed(() => {
-  if (!response.value) return null
-  
-  const remaining = Number(response.value.headers.get('X-RateLimit-Remaining'))
-  const limit = Number(response.value.headers.get('X-RateLimit-Limit'))
-  const resetTime = Number(response.value.headers.get('X-RateLimit-Reset'))
-  
-  return {
-    remaining,
-    limit,
-    percentage: (remaining / limit) * 100,
-    resetsAt: new Date(resetTime * 1000)
-  }
-})
-
-// Show warning when approaching limit
-watch(rateLimitStatus, (status) => {
-  if (status && status.percentage < 10) {
-    showToast(`Rate limit warning: ${status.remaining} requests remaining`, 'warning')
-  }
-})
-</script>
-
-<template>
-  <div>
-    <div v-if="rateLimitStatus" class="rate-limit-indicator">
-      <div 
-        class="bar" 
-        :style="{ width: rateLimitStatus.percentage + '%' }"
-      />
-      <span>{{ rateLimitStatus.remaining }} / {{ rateLimitStatus.limit }}</span>
-    </div>
-    
-    <ul>
-      <li v-for="pet in response?.data" :key="pet.id">
-        {{ pet.name }}
-      </li>
-    </ul>
-  </div>
-</template>
-```
-
-### Custom Status Handling
-
-```vue
-<script setup lang="ts">
-const { data: response } = useAsyncDataGetPetByIdRaw(
-  { petId: 123 }
-)
-
-const message = computed(() => {
-  if (!response.value) return 'Loading...'
-  
-  switch (response.value.status) {
-    case 200:
-      return `Pet found: ${response.value.data.name}`
-    case 404:
-      return 'Pet not found'
-    case 403:
-      return 'You do not have permission to view this pet'
-    case 500:
-      return 'Server error, please try again'
-    default:
-      return `Unexpected status: ${response.value.status}`
-  }
-})
-</script>
-
-<template>
-  <div>
-    <p>{{ message }}</p>
-    <div v-if="response?.status === 200">
-      <h1>{{ response.data.name }}</h1>
-      <p>Status: {{ response.data.status }}</p>
-    </div>
-  </div>
-</template>
-```
-
-### Content Type Detection
-
-```vue
-<script setup lang="ts">
-const { data: response } = useAsyncDataGetPetImageRaw()
-
-const contentType = computed(() => {
-  return response.value?.headers.get('Content-Type')
-})
-
-const isImage = computed(() => {
-  return contentType.value?.startsWith('image/')
-})
-
-const isJson = computed(() => {
-  return contentType.value?.includes('application/json')
-})
-</script>
-
-<template>
-  <div>
-    <p>Content-Type: {{ contentType }}</p>
-    <img v-if="isImage" :src="response?.data" />
-    <pre v-else-if="isJson">{{ response?.data }}</pre>
-  </div>
-</template>
-```
-
-## Combining with Standard Variant
-
-You can use both variants when needed:
-
-```vue
-<script setup lang="ts">
-// For display (simple)
-const { data: pets } = useAsyncDataGetPets()
-
-// For metadata (detailed)
-const { data: response } = useAsyncDataGetPetsRaw()
-
-const totalCount = computed(() => {
-  return response.value?.headers.get('X-Total-Count')
-})
-</script>
-
-<template>
-  <div>
-    <p>Total: {{ totalCount }}</p>
-    <ul>
-      <li v-for="pet in pets" :key="pet.id">{{ pet.name }}</li>
-    </ul>
-  </div>
-</template>
-```
-
-## TypeScript Support
-
-Raw responses are fully typed:
-
-```typescript
-const { data: response } = useAsyncDataGetPetsRaw()
-
-// TypeScript knows the structure
-response.value?.status        // number
-response.value?.statusText    // string
-response.value?.headers       // Headers
-response.value?.data          // Pet[] (typed from OpenAPI)
-```
-
-## When to Use Raw Responses
-
-### ✅ Use Raw When:
-
-- Need to read response headers
-- Need HTTP status codes
-- Working with pagination headers
-- Implementing ETags/caching
-- Need rate limit information
-- Custom status code handling
-
-### ❌ Use Standard When:
-
-- Only need response data
-- Don't care about headers/status
-- Simpler code is preferred
-- Type transformations are needed
-
-## Next Steps
-
-- [Basic Usage](/composables/use-async-data/basic-usage)
-- [vs useFetch](/composables/use-async-data/vs-use-fetch)
-- [useAsyncData Overview](/composables/use-async-data/)
+- [useAsyncData](/composables/use-async-data/)
+- [Pagination](/composables/use-async-data/pagination)

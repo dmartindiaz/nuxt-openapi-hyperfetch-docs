@@ -1,172 +1,115 @@
 # Callbacks Overview
 
-Callbacks let you execute code at different stages of the API request lifecycle. Every generated composable supports four lifecycle callbacks.
+Every generated composable supports four local lifecycle callbacks.
 
-## The Four Callbacks
+## Execution flow
 
-```
-           ┌────────────┐
-           │ onRequest  │  ⏱️  Before request is sent
-           └──────┬─────┘
-                  │
-                  ▼
-           ┌────────────┐
-           │  Request   │  🌐 HTTP request sent
-           └──────┬─────┘
-                  │
-             ┌────┴────┐
-             │         │
-        ✅ Success  ❌ Error
-             │         │
-             ▼         ▼
-      ┌───────────┐ ┌───────────┐
-      │onSuccess  │ │  onError  │  Response handling
-      └─────┬─────┘ └─────┬─────┘
-            │             │
-            └──────┬──────┘
-                   │
-                   ▼
-            ┌────────────┐
-            │  onFinish  │  🏁 Always runs (cleanup)
-            └────────────┘
+```text
+onRequest -> request -> onSuccess or onError -> onFinish
 ```
 
-### Execution Order
+The wrappers call them in this order:
 
-1. **`onRequest`** - Before request is sent
-2. **Request executes** - HTTP call to API
-3. **`onSuccess`** OR **`onError`** - Based on response
-4. **`onFinish`** - Always runs (cleanup)
+1. `onRequest` before the request is sent
+2. `onSuccess` when the request resolves successfully
+3. `onError` when the request fails
+4. `onFinish` after success or error
 
-## Quick Example
+## Quick example
 
-```typescript
+```ts
 useFetchGetPetById(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     onRequest: ({ url }) => {
-      console.log('⏱️ Fetching from:', url)
+      console.log('Fetching from:', url)
     },
     onSuccess: (pet) => {
-      console.log('✅ Loaded:', pet.name)
+      console.log('Loaded:', pet.name)
     },
     onError: (error) => {
-      console.error('❌ Failed:', error.message)
+      console.error('Failed:', error.message)
     },
-    onFinish: () => {
-      console.log('🏁 Request complete')
-    }
+    onFinish: ({ success }) => {
+      console.log('Request complete:', success)
+    },
   }
 )
 ```
 
-## Callback Types
+## What each callback is for
 
-### onRequest
+### `onRequest`
 
-Called **before** the request is sent.
+Runs before the request and can return request modifications.
 
-**Use for:**
-- Adding custom headers
-- Logging requests
-- Showing loading UI
-- Modifying request parameters
+Use it for:
 
-[Learn more about onRequest →](/composables/features/callbacks/on-request)
+- Adding headers
+- Adjusting body or query values
+- Request logging
+- Starting loading or tracing state
 
-### onSuccess
+[Learn more about onRequest](/composables/features/callbacks/on-request)
 
-Called when response status is **2xx** (success).
+### `onSuccess`
 
-**Use for:**
-- Showing success messages
-- Navigation after successful action
-- Updating global state
-- Analytics tracking
+Runs after a successful request.
 
-[Learn more about onSuccess →](/composables/features/callbacks/on-success)
+Use it for:
 
-### onError
+- Success toasts
+- Navigation
+- Updating stores
+- Analytics
 
-Called when response status is **4xx/5xx** or network error.
+[Learn more about onSuccess](/composables/features/callbacks/on-success)
 
-**Use for:**
-- Showing error messages
-- Retrying requests
-- Logging errors
-- Redirecting to login (401)
+### `onError`
 
-[Learn more about onError →](/composables/features/callbacks/on-error)
+Runs when the request throws or returns an error response.
 
-### onFinish
+Use it for:
 
-Called **always** after request completes (success or error).
+- Error toasts
+- Redirecting on `401`
+- Logging
+- Retry orchestration
 
-**Use for:**
-- Hiding loading spinners
-- Cleanup operations
-- Analytics tracking
-- Resetting UI state
+[Learn more about onError](/composables/features/callbacks/on-error)
 
-[Learn more about onFinish →](/composables/features/callbacks/on-finish)
+### `onFinish`
 
-## Error Propagation
+Runs after success or error and receives `{ data, error, success }`.
 
-Callbacks **don't stop** error propagation:
+Use it for:
 
-```vue
-<script setup lang="ts">
-const { data, error } = useFetchGetPets({}, {
-  onError: (err) => {
-    // This runs...
-    console.error('Callback error:', err)
-  }
-})
+- Cleanup
+- Hiding loading UI
+- Completion metrics
+- Shared success or error finalization
 
-// ...and error is still set
-watch(error, (err) => {
-  // This also runs
-  if (err) {
-    console.error('Watch error:', err)
-  }
-})
-</script>
-```
+[Learn more about onFinish](/composables/features/callbacks/on-finish)
 
-Both `onError` and `watch(error)` execute - callbacks are **additive**.
+## Additive behavior
 
-## Execution Guarantees
+Local callbacks do not replace Nuxt's normal composable state. For example, `onError` can run and the composable `error` ref is still updated.
 
-### onRequest
+Global callbacks are a separate layer and run before local ones unless disabled or suppressed.
 
-- ✅ Always runs before HTTP request
-- ✅ Can modify request (headers, body, query)
-- ❌ Cannot cancel request (use abort controller instead)
+## Guarantees
 
-### onSuccess
+- `onRequest` can return `headers`, `body`, or `query` modifications
+- `onSuccess` receives transformed data after `pick` and `transform`
+- `onError` receives the thrown error object from the underlying request
+- `onFinish` receives `{ data, error, success }`
 
-- ✅ Only runs on 2xx status codes
-- ✅ Data is typed from OpenAPI schema
-- ❌ Doesn't run on errors
+## Next steps
 
-### onError
-
-- ✅ Runs on 4xx/5xx status codes
-- ✅ Runs on network errors
-- ❌ Doesn't run on success
-
-### onFinish
-
-- ✅ **Always** runs (success or error)
-- ✅ Guaranteed cleanup
-- ⚠️ No access to data or error
-
-## Next Steps
-
-Learn about each callback in detail:
-
-- [onRequest →](/composables/features/callbacks/on-request)
-- [onSuccess →](/composables/features/callbacks/on-success)
-- [onError →](/composables/features/callbacks/on-error)
-- [onFinish →](/composables/features/callbacks/on-finish)
-- [Global Callbacks →](/composables/features/global-callbacks/overview)
+- [onRequest](/composables/features/callbacks/on-request)
+- [onSuccess](/composables/features/callbacks/on-success)
+- [onError](/composables/features/callbacks/on-error)
+- [onFinish](/composables/features/callbacks/on-finish)
+- [Global callbacks](/composables/features/global-callbacks/overview)

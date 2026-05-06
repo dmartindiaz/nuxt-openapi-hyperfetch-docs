@@ -1,211 +1,163 @@
 # Composables
 
-The `useFetch` and `useAsyncData` generators create type-safe composables for your Nuxt application. These composables wrap Nuxt's built-in data fetching composables with additional features.
+The module can generate two Nuxt composable families from the same OpenAPI operations:
 
-## What the CLI Adds
+- `useFetch` wrappers built on top of Nuxt's `useFetch`
+- `useAsyncData` wrappers built on top of Nuxt's `useAsyncData`
 
-Generated composables enhance Nuxt's `useFetch` and `useAsyncData` with:
+Both families use the generated OpenAPI types, so the wrapper params follow the SDK shape for each operation. For routes with path params, that usually means objects such as `params.path.petId`, not flat `{ petId }` arguments.
 
-- ✅ **Type Safety**: Request parameters and responses are fully typed from OpenAPI schemas
-- ✅ **Lifecycle Callbacks**: `onRequest`, `onSuccess`, `onError`, `onFinish`
-- ✅ **Global Callbacks**: Define callbacks once in a plugin, apply to all requests
-- ✅ **Request Interception**: Modify headers, body, query params before sending
-- ✅ **SSR Compatible**: Works seamlessly with Nuxt's server-side rendering
-- ✅ **Zero Dependencies**: Only uses Nuxt built-in APIs
+## Shared capabilities
 
-::: tip Nuxt Documentation
-Generated composables wrap Nuxt's built-in composables. For complete documentation on standard options like `immediate`, `watch`, `server`, `lazy`, `transform`, see:
+Generated composables add a small runtime layer on top of Nuxt. That layer currently provides:
 
-- **[Nuxt useFetch Documentation →](https://nuxt.com/docs/api/composables/use-fetch)**
-- **[Nuxt useAsyncData Documentation →](https://nuxt.com/docs/api/composables/use-async-data)**
+- Typed params and typed response data from the generated SDK
+- Lifecycle callbacks: `onRequest`, `onSuccess`, `onError`, `onFinish`
+- Global callback rules from a Nuxt plugin that provides `$getGlobalApiCallbacks`
+- Global headers from either `useApiHeaders()` or a Nuxt plugin that provides `$getApiHeaders`
+- Request modification from `onRequest` by returning `headers`, `body`, or `query`
+- `pick`, applied before `transform`
+- Optional pagination helpers
+- `baseURL` fallback from `runtimeConfig.public.apiBaseUrl`
+
+::: tip Nuxt reference
+The wrappers still expose the underlying Nuxt behavior for options such as `server`, `lazy`, `immediate`, `dedupe`, and `watch`.
+
+- [Nuxt useFetch Documentation](https://nuxt.com/docs/api/composables/use-fetch)
+- [Nuxt useAsyncData Documentation](https://nuxt.com/docs/api/composables/use-async-data)
 :::
 
-## Two Composable Types
+## Choosing a family
 
-### useFetch Composables
+### `useFetch`
 
-Generated when using `--generator useFetch`:
+Use `useFetch` wrappers when you want the simplest Nuxt integration and only need the response body.
 
-```typescript
-const { data, pending, error, refresh } = useFetchGetPets()
+```ts
+const { data, pending, error, refresh } = useFetchGetPetById({
+  path: { petId: 123 },
+})
 ```
 
-**Best for:** Simple API calls, basic CRUD operations
+Best fit:
 
-[Learn more about useFetch →](/composables/use-fetch/)
+- Standard page data loading
+- Straightforward CRUD actions
+- Forms triggered with `immediate: false`
+- Cases where the response body is enough
 
-### useAsyncData Composables
+[Learn more about useFetch](/composables/use-fetch/)
 
-Generated when using `--generator useAsyncData`:
+### `useAsyncData`
 
-```typescript
-const { data, pending, error, refresh } = useAsyncDataGetPets()
+Use `useAsyncData` wrappers when you need the raw response variant, computed cache identity, or more control over reactivity.
+
+```ts
+const { data, pending, error, refresh } = useAsyncDataGetPetById({
+  path: { petId: 123 },
+})
 ```
 
-**Best for:** Complex logic, data transformations, raw responses
+Best fit:
 
-[Learn more about useAsyncData →](/composables/use-async-data/)
+- Flows that need headers or status codes through the `Raw` variant
+- Requests where cache identity matters
+- Flows that benefit from `useAsyncData` semantics
+- Advanced pagination or response-processing paths
 
-## Shared Features
+[Learn more about useAsyncData](/composables/use-async-data/)
 
-Both composable types share the same powerful features:
+## Raw responses
 
-### Callbacks
+Only the `useAsyncData` generator produces a `Raw` variant per operation.
 
-Execute code at different stages of the request lifecycle:
+```ts
+const { data: response } = useAsyncDataGetPetsRaw()
 
-```typescript
-useFetchGetPet(
-  { petId: 123 },
+console.log(response.value?.status)
+console.log(response.value?.headers.get('X-Total-Count'))
+console.log(response.value?.data)
+```
+
+The raw response shape is:
+
+```ts
+interface RawResponse<T> {
+  data: T
+  headers: Headers
+  status: number
+  statusText: string
+}
+```
+
+[Learn more about raw responses](/composables/use-async-data/raw-responses)
+
+## Callback model
+
+Local callbacks run per request:
+
+```ts
+useFetchGetPetById(
   {
-    onRequest: () => console.log('Starting...'),
-    onSuccess: (data) => console.log('Success!', data),
-    onError: (error) => console.error('Failed!', error),
-    onFinish: ({ success }) => console.log('Done!', success ? '✓' : '✗')
+    path: { petId: 123 },
+  },
+  {
+    onRequest: ({ headers }) => ({
+      headers: {
+        ...headers,
+        'X-Request-ID': crypto.randomUUID(),
+      },
+    }),
+    onSuccess: (pet) => {
+      console.log('Loaded', pet.name)
+    },
+    onError: (error) => {
+      console.error(error)
+    },
   }
 )
 ```
 
-[Learn more about callbacks →](/composables/features/callbacks/overview)
+Global callbacks are configured through a Nuxt plugin:
 
-### Global Callbacks
-
-Define callbacks once in a plugin, apply them everywhere:
-
-```typescript
-// plugins/api.ts
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${getToken()}`
+```ts
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => ({
+        onError: (error) => {
+          if (error.status === 401) {
+            navigateTo('/login')
+          }
+        },
+      }),
+    },
   }
 })
 ```
 
-[Learn more about global callbacks →](/composables/features/global-callbacks/overview)
+At runtime, global rules are merged before local callbacks. Local callbacks still run unless a matching global rule explicitly returns `false` for that lifecycle stage.
 
-### Request Interception
+[Learn more about callbacks](/composables/features/callbacks/overview)
 
-Modify requests before they're sent:
+## Quick comparison
 
-```typescript
-useFetchGetUsers({}, {
-  onRequest: ({ headers, query }) => {
-    headers['X-Custom'] = 'value'
-    query.limit = 100
-  }
-})
-```
+| Feature | `useFetch` | `useAsyncData` |
+|---------|------------|----------------|
+| Typed params and responses | Yes | Yes |
+| Lifecycle callbacks | Yes | Yes |
+| Global callbacks | Yes | Yes |
+| Global headers | Yes | Yes |
+| `pick` before `transform` | Yes | Yes |
+| Pagination helpers | Yes | Yes |
+| Raw response variant | No | Yes |
+| Built on | `useFetch` | `useAsyncData` |
+| Best fit | Most endpoints | Advanced response flows |
 
-[Learn more about request interception →](/composables/features/request-interception)
+## Next steps
 
-### Data Transformation
-
-Transform response data with `transform` option:
-
-```typescript
-useAsyncDataGetPets({}, {
-  transform: (pets) => pets.map(p => ({ ...p, displayName: p.name.toUpperCase() }))
-})
-```
-
-[Learn more about data transformation →](/server/transformers/)
-
-### Authentication
-
-Add auth tokens and handle unauthorized responses:
-
-```typescript
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${getToken()}`
-  },
-  onError: (error) => {
-    if (error.status === 401) {
-      navigateTo('/login')
-    }
-  }
-})
-```
-
-[Learn more about authentication →](/composables/features/authentication)
-
-### Error Handling
-
-Centralized error handling with global callbacks:
-
-```typescript
-useGlobalCallbacks({
-  onError: (error) => {
-    if (error.status === 404) {
-      showToast('Resource not found', 'error')
-    } else if (error.status >= 500) {
-      showToast('Server error, please try again', 'error')
-    }
-  }
-})
-```
-
-[Learn more about error handling →](/composables/features/callbacks/on-error)
-
-## Quick Comparison
-
-| Feature | useFetch | useAsyncData |
-|---------|----------|--------------|
-| **CLI Features** | | |
-| Type Safety (from OpenAPI) | ✅ Full | ✅ Full |
-| Callbacks (CLI adds) | ✅ Full | ✅ Full |
-| Global Callbacks (CLI adds) | ✅ Full | ✅ Full |
-| **Nuxt Features** | | |
-| SSR Compatible | ✅ Yes | ✅ Yes |
-| Raw Response | ❌ No | ✅ Yes |
-| Data Transform | ✅ Yes | ✅ Yes |
-| Cache Key | Auto | Auto (custom optional) |
-| **Best For** | Simple calls | Complex logic |
-
-## Architecture
-
-```
-      ┌───────────────────┐
-      │  Your Component   │
-      └─────────┬─────────┘
-                │
-                ▼
-      ┌───────────────────────────┐
-      │  Generated Composable     │  useFetchGetPets()
-      └─────────┬─────────────────┘
-                │
-                ▼
-      ┌───────────────────────────┐
-      │useApiRequest /            │  Runtime helper
-      │useApiAsyncData            │
-      └─────────┬─────────────────┘
-                │
-                ▼
-      ┌───────────────────────────┐
-      │   Execute Callbacks       │  onRequest, onSuccess, etc.
-      └─────────┬─────────────────┘
-                │
-                ▼
-      ┌───────────────────────────┐
-      │Nuxt useFetch /            │  Built-in Nuxt composables
-      │useAsyncData               │
-      └─────────┬─────────────────┘
-                │
-                ▼
-      ┌───────────────────────────┐
-      │      API Server           │
-      └───────────────────────────┘
-```
-
-1. **Your Component** calls the generated composable
-2. **Generated Composable** wraps request with type safety
-3. **Runtime Helper** executes callbacks and delegates to Nuxt
-4. **Nuxt Composable** makes the actual HTTP request
-5. **API Server** responds with data
-
-## Next Steps
-
-- **Learn useFetch**: [useFetch Introduction →](/composables/use-fetch/)
-- **Learn useAsyncData**: [useAsyncData Introduction →](/composables/use-async-data/)
-- **See Examples**: [Basic Usage →](/composables/use-fetch/basic-usage)
-- **Explore Features**: [Shared Features →](/composables/features/)
+- [useFetch overview](/composables/use-fetch/)
+- [useAsyncData overview](/composables/use-async-data/)
+- [Shared features](/composables/features/)
+- [Pagination](/composables/use-async-data/pagination)

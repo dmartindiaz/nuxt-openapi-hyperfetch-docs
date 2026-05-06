@@ -167,6 +167,8 @@ Request → Local onRequest → HTTP → Local onSuccess
 Request → ... → HTTP → Global onError (returns false) → Local onError skipped
 ```
 
+This suppression only applies to the matching lifecycle stage. Returning `false` from global `onError` does not disable local `onSuccess`, `onRequest`, or `onFinish`.
+
 ## Next Steps
 
 - [URL Patterns →](/composables/features/global-callbacks/patterns)

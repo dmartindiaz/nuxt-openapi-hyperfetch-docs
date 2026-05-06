@@ -1,185 +1,104 @@
 # Troubleshooting
 
-Common issues and solutions when using nuxt-openapi-hyperfetch.
+This section covers the failure modes that still matter in the current Nuxt-only module workflow.
 
-## Quick Diagnosis
+## Start with the symptom
 
-### Generation Issues
+### Generation and build
 
-- **CLI won't run** → [Build Issues](/troubleshooting/build-issues)
-- **OpenAPI parsing fails** → [Generation Errors](/troubleshooting/generation-errors)
-- **Generated code has errors** → [Type Errors](/troubleshooting/type-errors)
+- Module does not generate anything -> [Build issues](/troubleshooting/build-issues)
+- OpenAPI parsing fails -> [Generation errors](/troubleshooting/generation-errors)
+- Generated code fails TypeScript checks -> [Type errors](/troubleshooting/type-errors)
 
-### Runtime Issues
+### Generated client layer
 
-- **Composables not working** → [Composables Issues](/troubleshooting/composables-issues)
-- **Server errors** → [Server Issues](/troubleshooting/server-issues)
-- **API calls failing** → [Runtime Errors](/troubleshooting/runtime-errors)
+- Generated composables are missing or not auto-imported -> [Composables issues](/troubleshooting/composables-issues)
+- Requests fail at runtime -> [Runtime errors](/troubleshooting/runtime-errors)
 
-### Performance Issues
+### Generated server layer
 
-- **Slow generation** → [Performance](/troubleshooting/performance)
-- **Large bundle size** → [Performance](/troubleshooting/performance)
+- `nuxtServer` routes are missing or broken -> [Server issues](/troubleshooting/server-issues)
 
-## Common Problems
+### Performance
 
-### 1. CLI Command Not Found
+- Build or regeneration is too slow -> [Performance](/troubleshooting/performance)
 
-```bash
-nxh: command not found
-```
+## Current product assumptions
 
-**Solution:**
+The guidance in this folder assumes the current package shape:
 
-```bash
-# Install globally
-npm install -g nuxt-openapi-hyperfetch
+- configuration lives in `nuxt.config.ts` under `openapi`
+- SDK and client outputs are generated under `openapi/` by default
+- generated client composables live under `openapi/composables/`
+- `nuxtServer` writes Nitro routes to `serverRoutePath`, defaulting to `server/routes/api`
+- the shared client runtime reads `runtimeConfig.public.apiBaseUrl` when `baseURL` is not passed per call
 
-# Or use npx
-npx nuxt-openapi-hyperfetch generate -i swagger.yaml
-```
+## Common problems
 
-### 2. Generation Fails
+### Generation never runs
 
-```bash
-Error: Failed to parse OpenAPI specification
-```
+Most often one of these is true:
 
-**Solution:**
-- Validate your OpenAPI spec: [Generation Errors](/troubleshooting/generation-errors)
-- Check file path is correct
-- Ensure spec is valid OpenAPI 3.0
+- `openapi.input` is missing, so the module skips generation
+- the current command is `nuxt dev` but `enableDevBuild` is `false`
+- the current command is `nuxt build` but `enableProductionBuild` is `false`
 
-### 3. TypeScript Errors
+See [Build issues](/troubleshooting/build-issues).
 
-```typescript
-Type 'unknown' is not assignable to type 'Pet'
-```
+### Generated composables are not found
 
-**Solution:**
-- Regenerate types after spec changes
-- Check [Type Errors](/troubleshooting/type-errors)
+Most often one of these is true:
 
-### 4. Composables Not Found
+- the needed generator is not enabled
+- the symbol name is based on a different `operationId` than expected
+- the app is importing from an old path instead of the generated `openapi/` tree
 
-```typescript
-Cannot find module '~/composables/pets'
-```
+See [Composables issues](/troubleshooting/composables-issues).
 
-**Solution:**
-- Ensure generation completed successfully
-- Check output directory matches import path
-- Restart Nuxt dev server
+### Requests fail even though generation succeeded
 
-### 5. API Calls Fail
+Most often one of these is true:
 
-```bash
-404 Not Found
-CORS error
-```
+- `runtimeConfig.public.apiBaseUrl` is missing
+- authentication is not wired through `useApiHeaders()` or `getGlobalApiCallbacks`
+- the browser is calling an upstream API directly and hitting CORS restrictions
 
-**Solution:**
-- Configure correct `baseURL`
-- Check [Runtime Errors](/troubleshooting/runtime-errors)
-- Verify API endpoint is accessible
+See [Runtime errors](/troubleshooting/runtime-errors).
 
-## By Category
+### `nuxtServer` output is missing or broken
 
-### Generation & Build
+Most often one of these is true:
 
-| Issue | Guide |
-|-------|-------|
-| OpenAPI parsing errors | [Generation Errors](/troubleshooting/generation-errors) |
-| TypeScript compilation fails | [Type Errors](/troubleshooting/type-errors) |
-| Build failures | [Build Issues](/troubleshooting/build-issues) |
-| Slow generation | [Performance](/troubleshooting/performance) |
+- `generators` does not include `nuxtServer`
+- `serverRoutePath` points somewhere unexpected
+- `apiBaseUrl` or optional BFF files are not configured after generation
 
-### Client Composables
+See [Server issues](/troubleshooting/server-issues).
 
-| Issue | Guide |
-|-------|-------|
-| useFetch not working | [Composables Issues](/troubleshooting/composables-issues) |
-| Type errors in components | [Composables Issues](/troubleshooting/composables-issues) |
-| Data not reactive | [Composables Issues](/troubleshooting/composables-issues) |
-| Callbacks not firing | [Composables Issues](/troubleshooting/composables-issues) |
+## What to include in a bug report
 
-### Server Composables
+When reporting an issue, include:
 
-| Issue | Guide |
-|-------|-------|
-| H3Event errors | [Server Issues](/troubleshooting/server-issues) |
-| Auth not working | [Server Issues](/troubleshooting/server-issues) |
-| Headers not forwarded | [Server Issues](/troubleshooting/server-issues) |
-| Server errors | [Server Issues](/troubleshooting/server-issues) |
+1. package version
+2. Nuxt version
+3. Node version
+4. relevant `openapi` section from `nuxt.config.ts`
+5. whether the failure happens in `nuxt dev`, `nuxt build`, or both
+6. a minimal OpenAPI excerpt that reproduces the problem
+7. the generated output path involved, such as `openapi/composables/use-fetch` or `server/routes/api`
 
-### Runtime
+## Debugging hints
 
-| Issue | Guide |
-|-------|-------|
-| Network errors | [Runtime Errors](/troubleshooting/runtime-errors) |
-| CORS issues | [Runtime Errors](/troubleshooting/runtime-errors) |
-| 401/403 errors | [Runtime Errors](/troubleshooting/runtime-errors) |
-| Timeout errors | [Runtime Errors](/troubleshooting/runtime-errors) |
+- Watch the Nuxt terminal for messages prefixed with `[nuxt-openapi-hyperfetch]`.
+- Confirm that the expected generator is enabled before debugging the output.
+- When in doubt, delete the generated output directory and let the module regenerate it from the current spec.
 
-## Getting Help
+## Sections
 
-If you can't find a solution:
-
-1. **Search Issues** - Check [GitHub Issues](https://github.com/dmartindiaz/nuxt-openapi-hyperfetch/issues)
-2. **Ask Community** - Post in [GitHub Discussions](https://github.com/dmartindiaz/nuxt-openapi-hyperfetch/discussions)
-3. **Join Discord** - Get help in #support channel
-4. **Create Issue** - Report bug with reproduction
-
-### Creating a Good Bug Report
-
-Include:
-
-```markdown
-**Environment:**
-- OS: Windows 11
-- Node: v20.10.0
-- nuxt-openapi-hyperfetch: v1.2.0
-- Nuxt: v3.10.0
-
-**OpenAPI Spec:**
-```yaml
-# Minimal spec that reproduces issue
-```
-
-**Steps to Reproduce:**
-1. Run `nxh generate -i spec.yaml`
-2. Import generated composable
-3. See error
-
-**Expected:**
-Should generate valid composable
-
-**Actual:**
-Error: ...
-
-**Error Output:**
-```
-
-## Debug Mode
-
-Enable verbose logging:
-
-```bash
-# Set debug environment variable
-DEBUG=nxh:* nxh generate -i swagger.yaml
-
-# Or use verbose flag (if available)
-nxh generate -i swagger.yaml --verbose
-```
-
-## Next Steps
-
-Choose your issue category:
-
-- [Generation Errors →](/troubleshooting/generation-errors)
-- [Composables Issues →](/troubleshooting/composables-issues)
-- [Server Issues →](/troubleshooting/server-issues)
-- [Type Errors →](/troubleshooting/type-errors)
-- [Build Issues →](/troubleshooting/build-issues)
-- [Runtime Errors →](/troubleshooting/runtime-errors)
-- [Performance →](/troubleshooting/performance)
+- [Build issues](/troubleshooting/build-issues)
+- [Generation errors](/troubleshooting/generation-errors)
+- [Composables issues](/troubleshooting/composables-issues)
+- [Runtime errors](/troubleshooting/runtime-errors)
+- [Server issues](/troubleshooting/server-issues)
+- [Type errors](/troubleshooting/type-errors)
+- [Performance](/troubleshooting/performance)

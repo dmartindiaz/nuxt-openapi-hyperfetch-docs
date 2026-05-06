@@ -1,264 +1,202 @@
 # Shared Features
 
-Both `useFetch` and `useAsyncData` composables share powerful features that enhance your API integration.
+Both `useFetch` and `useAsyncData` wrappers share the same generated runtime features.
 
 ## Overview
 
-Generated composables include:
+Generated composables currently support:
 
-- ✅ **Configuration File**: Configure base URL and generation options
-- ✅ **Lifecycle Callbacks**: Execute code at different request stages
-- ✅ **Global Callbacks**: Define callbacks once, apply everywhere
-- ✅ **Global Headers**: Set headers globally (auth tokens, API keys)
-- ✅ **Pick Fields**: Select specific response fields with dot notation
-- ✅ **Request Interception**: Modify requests before sending
-- ✅ **Authentication**: Built-in auth token and error handling patterns
-- ✅ **Error Handling**: Centralized error management
+- Nuxt module configuration through `openapi` in `nuxt.config.ts`
+- Lifecycle callbacks for each request
+- Global callback rules from a Nuxt plugin
+- Global headers from a composable or Nuxt plugin
+- `pick` and `transform`
+- Request interception through `onRequest`
+- Optional pagination helpers
+- Full type safety from the generated OpenAPI SDK
 
-## Features Comparison
+## Features comparison
 
 | Feature | useFetch | useAsyncData | Source |
 |---------|----------|--------------|--------|
-| **Configuration File** | ✅ Full | ✅ Full | CLI adds |
-| **Callbacks** | ✅ Full | ✅ Full | CLI adds |
-| **Global Callbacks** | ✅ Full | ✅ Full | CLI adds |
-| **Global Headers** | ✅ Full | ✅ Full | CLI adds |
-| **Pick Fields** | ✅ Full | ✅ Full | CLI adds |
-| **Request Interception** | ✅ Full | ✅ Full | CLI adds |
-| **Type Safety** | ✅ Full | ✅ Full | CLI adds (from OpenAPI) |
-| **Authentication** | ✅ Full | ✅ Full | Pattern using CLI callbacks |
-| **Error Handling** | ✅ Full | ✅ Full | Pattern using CLI callbacks |
+| Module configuration | Yes | Yes | Nuxt module |
+| Lifecycle callbacks | Yes | Yes | Generated runtime |
+| Global callbacks | Yes | Yes | Generated runtime |
+| Global headers | Yes | Yes | Generated runtime |
+| Pick fields | Yes | Yes | Generated runtime |
+| Request interception | Yes | Yes | Generated runtime |
+| Pagination helpers | Yes | Yes | Generated runtime |
+| Raw response variant | No | Yes | Generated runtime |
 
-## Configuration File
+## Module configuration
 
-Configure the CLI behavior with `nxh.config.js` in your project root.
+Configure generation through the `openapi` key in `nuxt.config.ts`.
 
-### Basic Configuration
-
-```javascript
-// nxh.config.js
-export default {
-  input: './openapi.yaml',
-  output: './composables',
-  baseUrl: 'https://api.example.com',
-  generators: ['useFetch', 'useAsyncData']
-}
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-openapi-hyperfetch'],
+  openapi: {
+    input: './swagger.yaml',
+    output: './openapi',
+    baseUrl: 'https://api.example.com',
+    generators: ['useFetch', 'useAsyncData'],
+  },
+})
 ```
 
-::: tip CLI Feature
-The configuration file is specific to the CLI. It controls code generation and sets the base URL for client composables (useFetch and useAsyncData only).
-:::
-
-[Learn more about CLI configuration →](/guide/use-as-cli#cli-config-file-nxh-config)
+[Learn more about module configuration](/guide/use-as-nuxt-module)
 
 ## Callbacks
 
-Execute code at different stages of the request lifecycle.
+Each generated composable supports `onRequest`, `onSuccess`, `onError`, and `onFinish`.
 
-### Four Lifecycle Callbacks
+```ts
+useFetchGetPetById(
+  {
+    path: { petId: 123 },
+  },
+  {
+    onRequest: ({ url, headers }) => {
+      console.log('Starting request to:', url)
 
-```typescript
-useFetchGetPets({}, {
-  onRequest: ({ url, headers, body, query }) => {
-    // ⏱️ Before request
-    console.log('Starting request to:', url)
-  },
-  onSuccess: (data) => {
-    // ✅ On 2xx response
-    console.log('Success!', data)
-  },
-  onError: (error) => {
-    // ❌ On 4xx/5xx or network error
-    console.error('Failed!', error)
-  },
-  onFinish: () => {
-    // 🏁 Always runs
-    console.log('Request complete')
+      return {
+        headers: {
+          ...headers,
+          'X-Request-ID': crypto.randomUUID(),
+        },
+      }
+    },
+    onSuccess: (data) => {
+      console.log('Success!', data)
+    },
+    onError: (error) => {
+      console.error('Failed!', error)
+    },
+    onFinish: () => {
+      console.log('Request complete')
+    },
+  }
+)
+```
+
+[Learn more about callbacks](/composables/features/callbacks/overview)
+
+## Global callbacks
+
+Global callbacks are provided by a Nuxt plugin that exposes `getGlobalApiCallbacks` on the Nuxt app.
+
+```ts
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => ({
+        onRequest: ({ headers }) => {
+          const token = useCookie('auth-token').value
+
+          if (!token) {
+            return
+          }
+
+          return {
+            headers: {
+              ...headers,
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        },
+        onError: (error) => {
+          if (error.status === 401) {
+            navigateTo('/login')
+          }
+        },
+      }),
+    },
   }
 })
 ```
 
-[Learn more about callbacks →](/composables/features/callbacks/overview)
+`skipGlobalCallbacks` can disable all global rules with `true`, or disable only named lifecycle stages with an array such as `['onError']`.
 
-## Global Callbacks
+[Learn more about global callbacks](/composables/features/global-callbacks/overview)
 
-Define callbacks once in a plugin, apply them to all requests automatically.
+## Global headers
 
-### Plugin Setup
+Global headers can come from either `useApiHeaders()` or a Nuxt plugin that provides `getApiHeaders`.
 
-```typescript
-// plugins/api-callbacks.ts
-export default defineNuxtPlugin(() => {
-  useGlobalCallbacks({
-    onRequest: ({ headers }) => {
-      const token = useCookie('auth-token').value
-      if (token) {
-        return {
-          headers: {
-            ...headers,
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      }
-    },
-    onError: (error) => {
-      // Handle ALL errors in one place
-      if (error.status === 401) {
-        navigateTo('/login')
-      }
-    }
-  })
-})
-```
-
-Now every API request automatically includes the auth token and handles 401 errors.
-
-[Learn more about global callbacks →](/composables/features/global-callbacks/overview)
-
-## Global Headers
-
-Set headers globally for all API requests using `useApiHeaders()` composable.
-
-### Composable Method
-
-```typescript
+```ts
 // composables/useApiHeaders.ts
 export const useApiHeaders = () => {
   const authToken = useCookie('auth-token')
-  
-  return computed(() => ({
-    'Authorization': authToken.value ? `Bearer ${authToken.value}` : '',
-    'X-Client-Version': '1.0.0'
-  }))
+
+  return {
+    Authorization: authToken.value ? `Bearer ${authToken.value}` : '',
+    'X-Client-Version': '1.0.0',
+  }
 }
 ```
 
-All API requests automatically include these headers. Global headers merge with request-specific headers.
+Global headers are merged before request-specific headers, so per-request headers still win.
 
-::: tip CLI Feature
-Global headers are a CLI-specific feature that work with both `useFetch` and `useAsyncData` composables.
-:::
+[Learn more about global headers](/composables/features/global-headers)
 
-[Learn more about global headers →](/composables/features/global-headers)
+## Pick fields
 
-## Pick Fields
+Use `pick` to select specific fields from the response before `transform` runs.
 
-Select specific fields from API responses using the `pick` option with dot notation support.
-
-### Basic Usage
-
-```typescript
-// Pick specific fields
-const { data } = useFetchGetUser({ id: 1 }, {
-  pick: ['id', 'name', 'email'] as const
-})
-// data: { id: number, name: string, email: string }
-
-// Pick nested fields with dot notation
-const { data } = useFetchGetUser({ id: 1 }, {
-  pick: ['profile.name', 'profile.avatar', 'status'] as const
-})
-// data: { profile: { name: string, avatar: string }, status: string }
-```
-
-::: tip CLI Feature
-The `pick` option is a CLI-specific feature that reduces data transfer and improves performance. It works with both `useFetch` and `useAsyncData` composables.
-:::
-
-[Learn more about pick fields →](/composables/features/pick)
-
-## Request Interception
-
-Modify requests before they're sent using `onRequest`.
-
-```typescript
-useFetchGetUsers({}, {
-  onRequest: ({ url, method, headers, body, query }) => {
-    return {
-      headers: {
-        ...headers,
-        'X-Custom-Header': 'value',
-        'X-Request-ID': crypto.randomUUID()
-      },
-      query: {
-        ...query,
-        timestamp: Date.now(),
-        version: 'v2'
-      },
-      body: body ? {
-        ...body,
-        clientVersion: '1.0.0'
-      } : undefined
-    }
+```ts
+const { data } = useFetchGetPetById(
+  {
+    path: { petId: 123 },
+  },
+  {
+    pick: ['id', 'name', 'status'] as const,
   }
-})
+)
 ```
 
-[Learn more about request interception →](/composables/features/request-interception)
+Dot notation is supported for nested paths.
 
-## Authentication
+[Learn more about pick fields](/composables/features/pick)
 
-Built-in patterns for authentication.
+## Request interception
 
-### Global Auth Token
+Return partial request modifications from `onRequest` to alter headers, query params, or body before the request is sent.
 
-```typescript
-// plugins/api-auth.ts
-export default defineNuxtPlugin(() => {
-  useGlobalCallbacks({
-    onRequest: ({ headers }) => {
-      const token = useCookie('auth-token').value
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`
-      }
+```ts
+useFetchGetPets({}, {
+  onRequest: ({ headers, query, body }) => ({
+    headers: {
+      ...headers,
+      'X-Custom-Header': 'value',
     },
-    onError: (error) => {
-      if (error.status === 401) {
-        // Clear token and redirect
-        useCookie('auth-token').value = null
-        navigateTo('/login')
-      }
-    }
-  })
+    query: {
+      ...query,
+      locale: 'en',
+    },
+    body: body
+      ? {
+          ...body,
+          clientVersion: '1.0.0',
+        }
+      : undefined,
+  }),
 })
 ```
 
-### Skip Auth for Public Requests
+[Learn more about request interception](/composables/features/request-interception)
 
-```typescript
-useFetchGetPublicPets({}, {
-  skipGlobalCallbacks: true // Skip auth token
-})
-```
+## Authentication and error handling
 
-[Learn more about authentication →](/composables/features/authentication)
+Authentication and centralized error handling are application patterns built on top of callbacks and global headers. They are not separate generated primitives.
 
-## Error Handling
+Typical pattern:
 
-Centralized error management with global callbacks.
+- Add auth headers globally through `useApiHeaders()` or `getGlobalApiCallbacks`
+- Handle shared error cases through global `onError`
+- Use `skipGlobalCallbacks` for public or exceptional requests
 
-```typescript
-// plugins/api-errors.ts
-export default defineNuxtPlugin(() => {
-  useGlobalCallbacks({
-    onError: (error) => {
-      // Log all errors
-      console.error('[API Error]', error)
-      
-      // Handle by status code
-      if (error.status === 404) {
-        showToast('Resource not found', 'error')
-      } else if (error.status === 403) {
-        showToast('Access denied', 'error')
-      } else if (error.status >= 500) {
-        showToast('Server error, please try again', 'error')
-      } else {
-        showToast(error.message, 'error')
-      }
-    }
-  })
-})
-```
+[Learn more about authentication](/composables/features/authentication)
 
 [Learn more about error handling →](/composables/features/callbacks/on-error)
 

@@ -1,358 +1,103 @@
-# Testing Guide
+# Testing Expectations
 
-Testing standards and best practices for nuxt-openapi-hyperfetch.
+This repository does not currently ship a formal automated test suite, fixture matrix, or coverage pipeline in-tree.
 
-## Test Framework
+That means contributor testing is currently centered on build validation and generation smoke tests.
 
-We use **Vitest** for testing:
+## Minimum validation for most changes
 
-- Fast execution
-- TypeScript support
-- Compatible with Vite
-- Jest-compatible API
-- Built-in coverage
-
-## Test Structure
-
-```
-test/
-├── unit/              # Unit tests
-│   ├── parser/       # Parser tests
-│   ├── generator/    # Generator tests
-│   └── cli/          # CLI tests
-├── integration/       # Integration tests
-├── fixtures/          # Test fixtures
-│   ├── petstore.yaml
-│   └── expected/
-└── helpers/           # Test utilities
-```
-
-## Running Tests
+Run these before opening a pull request:
 
 ```bash
-# Run all tests
-npm test
-
-# Run specific test file
-npm test -- parser.spec.ts
-
-# Run in watch mode
-npm run test:watch
-
-# Run with coverage
-npm run test:coverage
-
-# Run only unit tests
-npm run test:unit
-
-# Run only integration tests
-npm run test:integration
+npm run build
+npm run validate
 ```
 
-## Writing Tests
+`npm run validate` currently runs:
 
-### Unit Tests
+- `npm run type-check`
+- `npm run lint`
+- `npm run format:check`
 
-Test individual functions in isolation:
+## Generation smoke tests
 
-```typescript
-// test/unit/parser/parseSchema.spec.ts
-import { describe, it, expect } from 'vitest'
-import { parseSchema } from '~/src/parser/schema'
-
-describe('parseSchema', () => {
-  it('should parse object schema', () => {
-    const schema = {
-      type: 'object',
-      properties: {
-        id: { type: 'integer' },
-        name: { type: 'string' }
-      },
-      required: ['id']
-    }
-    
-    const result = parseSchema(schema)
-    
-    expect(result).toEqual({
-      type: 'interface',
-      name: 'Pet',
-      properties: [
-        { name: 'id', type: 'number', required: true },
-        { name: 'name', type: 'string', required: false }
-      ]
-    })
-  })
-  
-  it('should handle enum', () => {
-    const schema = {
-      type: 'string',
-      enum: ['available', 'pending', 'sold']
-    }
-    
-    const result = parseSchema(schema)
-    
-    expect(result.type).toBe("'available' | 'pending' | 'sold'")
-  })
-})
-```
-
-### Integration Tests
-
-Test entire workflows:
-
-```typescript
-// test/integration/generate.spec.ts
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { rm, mkdir } from 'fs/promises'
-import { generateComposables } from '~/src/generator'
-import { parseOpenAPI } from '~/src/parser'
-
-describe('generateComposables', () => {
-  const outputDir = './test/tmp'
-  
-  beforeEach(async () => {
-    await mkdir(outputDir, { recursive: true })
-  })
-  
-  afterEach(async () => {
-    await rm(outputDir, { recursive: true, force: true })
-  })
-  
-  it('should generate client composables', async () => {
-    const spec = await parseOpenAPI('./test/fixtures/petstore.yaml')
-    
-    const files = await generateComposables(spec, {
-      mode: 'client',
-      outputDir
-    })
-    
-    expect(files.length).toBeGreaterThan(0)
-    expect(files.some(f => f.path.includes('useFetchPet'))).toBe(true)
-  })
-})
-```
-
-## Test Fixtures
-
-Use consistent test data:
-
-```typescript
-// test/fixtures/schemas.ts
-export const petSchema = {
-  type: 'object',
-  required: ['id', 'name'],
-  properties: {
-    id: { type: 'integer' },
-    name: { type: 'string' },
-    status: {
-      type: 'string',
-      enum: ['available', 'pending', 'sold']
-    }
-  }
-}
-
-// test/fixtures/openapi.ts
-export const petstoreSpec = {
-  openapi: '3.0.0',
-  info: { title: 'Petstore', version: '1.0.0' },
-  paths: {
-    '/pets/{id}': {
-      get: {
-        operationId: 'getPet',
-        parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'integer' } }
-        ],
-        responses: {
-          '200': {
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Pet' }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  components: {
-    schemas: {
-      Pet: petSchema
-    }
-  }
-}
-```
-
-## Mocking
-
-### Mock External Dependencies
-
-```typescript
-import { describe, it, expect, vi } from 'vitest'
-import { readFile } from 'fs/promises'
-
-// Mock fs module
-vi.mock('fs/promises', () => ({
-  readFile: vi.fn()
-}))
-
-describe('loadSpec', () => {
-  it('should load spec from file', async () => {
-    const mockContent = 'openapi: 3.0.0'
-    vi.mocked(readFile).mockResolvedValue(mockContent)
-    
-    const result = await loadSpec('./swagger.yaml')
-    
-    expect(readFile).toHaveBeenCalledWith('./swagger.yaml', 'utf-8')
-    expect(result).toBeDefined()
-  })
-})
-```
-
-### Mock API Calls
-
-```typescript
-import { describe, it, expect, vi } from 'vitest'
-
-describe('fetchSpec', () => {
-  it('should fetch spec from URL', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ openapi: '3.0.0' })
-    })
-    
-    const result = await fetchSpec('https://api.example.com/openapi.json')
-    
-    expect(fetch).toHaveBeenCalled()
-    expect(result.openapi).toBe('3.0.0')
-  })
-})
-```
-
-## Snapshot Testing
-
-Test generated code with snapshots:
-
-```typescript
-import { describe, it, expect } from 'vitest'
-import { generateComposable } from '~/src/generator'
-
-describe('generateComposable', () => {
-  it('should generate correct code', () => {
-    const operation = {
-      operationId: 'getPet',
-      method: 'GET',
-      path: '/pets/{id}',
-      parameters: [
-        { name: 'id', in: 'path', type: 'number' }
-      ]
-    }
-    
-    const code = generateComposable(operation, { mode: 'client' })
-    
-    expect(code).toMatchSnapshot()
-  })
-})
-```
-
-## Coverage
-
-### Target Coverage
-
-- **Statements**: > 80%
-- **Branches**: > 75%
-- **Functions**: > 80%
-- **Lines**: > 80%
-
-### Check Coverage
+If your change affects generated output, also run the relevant generation command.
 
 ```bash
-npm run test:coverage
+npm run dev:generate:openapi
+npm run dev:generate:use-fetch
+npm run dev:generate:use-async-data
+npm run dev:generate:all
 ```
 
-### Coverage Report
+Use `swagger.yaml` as the default local contract unless your change requires a more specific reproduction.
 
-```
-File              | % Stmts | % Branch | % Funcs | % Lines
-------------------|---------|----------|---------|--------
-All files         |   85.2  |   78.4   |   82.1  |   85.5
-parser/           |   90.1  |   85.2   |   88.3  |   90.4
-  index.ts        |   92.3  |   88.1   |   91.2  |   92.5
-  schema.ts       |   88.5  |   82.7   |   86.1  |   89.1
-generator/        |   82.4  |   74.8   |   79.2  |   83.1
-  index.ts        |   85.1  |   78.3   |   82.4  |   85.7
-```
+## What to check after regeneration
 
-## Best Practices
+After regenerating, inspect `openapi/` for the behavior you expected.
 
-### 1. Test Behavior, Not Implementation
+Examples:
 
-```typescript
-// ✅ Good - tests behavior
-it('should return formatted pet name', () => {
-  const result = formatPetName({ name: 'fluffy', category: 'cat' })
-  expect(result).toBe('Fluffy (cat)')
-})
+- new operation naming or parameter handling appears in generated exports
+- runtime warning text matches current configuration keys
+- composable signatures still align with exported types from `~/openapi`
+- docs examples still match the generated symbol names
 
-// ❌ Bad - tests implementation
-it('should call capitalize and concatenate', () => {
-  const spy = vi.spyOn(utils, 'capitalize')
-  formatPetName({ name: 'fluffy', category: 'cat' })
-  expect(spy).toHaveBeenCalled()
-})
-```
+## Change-specific expectations
 
-### 2. Use Descriptive Test Names
+### Generator changes
 
-```typescript
-// ✅ Good - descriptive
-it('should throw error when OpenAPI version is missing', () => {
-  expect(() => parseSpec({})).toThrow('missing "openapi" field')
-})
+If you touch `src/generators/**`, validate the affected output and describe what changed in the pull request.
 
-// ❌ Bad - vague
-it('should throw error', () => {
-  expect(() => parseSpec({})).toThrow()
-})
-```
+### Shared runtime changes
 
-### 3. One Assertion Per Test (Generally)
+If you touch runtime helpers, test both happy path and failure behavior where possible, especially:
 
-```typescript
-// ✅ Good - focused test
-it('should parse required properties correctly', () => {
-  const result = parseSchema(schema)
-  expect(result.properties.find(p => p.name === 'id')?.required).toBe(true)
-})
+- missing base URL warnings
+- header and callback hooks
+- request parameter shaping
+- cache key or reactive parameter behavior
 
-it('should parse optional properties correctly', () => {
-  const result = parseSchema(schema)
-  expect(result.properties.find(p => p.name === 'category')?.required).toBe(false)
-})
+### Module changes
 
-// ❌ Bad - multiple unrelated assertions
-it('should parse schema', () => {
-  const result = parseSchema(schema)
-  expect(result.name).toBe('Pet')
-  expect(result.properties.length).toBe(3)
-  expect(result.type).toBe('interface')
-})
-```
+If you touch `src/module/**`, validate the defaults and option names against the current docs and confirm the build hooks still behave correctly.
 
-### 4. Clean Up After Tests
+## Manual integration testing
 
-```typescript
-import { afterEach } from 'vitest'
+For changes that are hard to validate from generated files alone, a small external Nuxt sandbox is still a good manual test strategy.
 
-afterEach(async () => {
-  // Clean up test files
-  await rm('./test/tmp', { recursive: true, force: true })
-  
-  // Reset mocks
-  vi.restoreAllMocks()
-})
-```
+Typical cases:
 
-## Next Steps
+- auto-import behavior
+- module hook timing in `nuxt dev`
+- Nitro route output from `nuxtServer`
+- connector ergonomics inside a real app
 
-- [Code Style →](/contributing/code-style)
-- [Pull Requests →](/contributing/pull-requests)
+That sandbox is not part of this repository, so summarize the manual steps you used in the pull request.
+
+## If you add automated tests
+
+Automated tests are welcome, but they should match the actual architecture of the current repository.
+
+Good additions would focus on:
+
+- small deterministic generator outputs
+- config normalization
+- runtime helper behavior that does not depend on a full Nuxt app
+- regression cases that were previously broken
+
+Avoid introducing a large test harness unless the change clearly justifies the maintenance cost.
+
+## Pull request notes
+
+If a change was tested manually, include:
+
+1. what command you ran
+2. which files or output you inspected
+3. what behavior you confirmed
+4. anything you could not verify inside this repository
+
+## Related pages
+
+- [Development setup](/contributing/development)
+- [Pull request guide](/contributing/pull-requests)

@@ -1,273 +1,144 @@
 # Development Setup
 
-Set up your local development environment for contributing to nuxt-openapi-hyperfetch.
+This page covers the real local workflow for contributing to the current repository.
 
 ## Prerequisites
 
-- **Node.js** 18.0.0 or higher
-- **npm** 9.0.0 or higher
-- **Git** 2.0 or higher
-- **TypeScript** knowledge
-- **VSCode** (recommended) or other editor
+- Node.js 18 or newer
+- npm 9 or newer
+- Git
+- working knowledge of TypeScript and Nuxt
 
-## Initial Setup
-
-### 1. Fork and Clone
+## Initial setup
 
 ```bash
-# Fork the repository on GitHub, then clone your fork
 git clone https://github.com/dmartindiaz/nuxt-openapi-hyperfetch.git
 cd nuxt-openapi-hyperfetch
-
-# Add upstream remote
-git remote add upstream https://github.com/dmartindiaz/nuxt-openapi-hyperfetch.git
-```
-
-### 2. Install Dependencies
-
-```bash
 npm install
+npm run build
+npm run validate
 ```
 
-### 3. Build Project
+## Project map
+
+The most relevant directories today are:
+
+```text
+src/
+  config/        Shared generator and connector config helpers
+  generators/    useFetch, useAsyncData, nuxtServer, connectors, shared runtime
+  module/        Nuxt module entrypoint and module options
+  utils/         Shared logging and helper utilities
+scripts/
+  dev-generate.ts  Local generation harness for contributor workflows
+openapi/
+  Generated SDK, types, and local smoke-test output
+swagger.yaml
+  Local OpenAPI document used for development iteration
+```
+
+## Commands that matter
+
+### Validation
 
 ```bash
 npm run build
-```
-
-## Project Structure
-
-```
-nuxt-openapi-hyperfetch/
-├── src/              # Source code
-│   ├── cli/         # CLI implementation
-│   ├── parser/      # OpenAPI parser
-│   ├── generator/   # Code generator
-│   └── templates/   # Generation templates
-├── test/            # Tests
-│   ├── unit/        # Unit tests
-│   ├── integration/ # Integration tests
-│   └── fixtures/    # Test fixtures
-├── docs/            # Documentation
-├── examples/        # Example projects
-└── package.json
-```
-
-## Development Commands
-
-### Build
-
-```bash
-# Build project
-npm run build
-
-# Build in watch mode
-npm run dev
-
-# Clean build artifacts
-npm run clean
-```
-
-### Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run specific test file
-npm test -- path/to/test.spec.ts
-
-# Run with coverage
-npm run test:coverage
-```
-
-### Linting
-
-```bash
-# Lint code
-npm run lint
-
-# Fix linting issues
-npm run lint:fix
-
-# Type check
 npm run type-check
+npm run lint
+npm run format:check
+npm run validate
 ```
 
-### Generate
+`npm run validate` is the main pre-PR gate in the current repo.
+
+### Local generation
+
+Use the dev harness instead of old CLI examples.
 
 ```bash
-# Test generation locally
-npm run generate -- -i test/fixtures/petstore.yaml -o ./output
-
-# Test server mode
-echo nuxtServer | npm run generate -- -i test/fixtures/petstore.yaml -o ./output
+npm run dev:generate:all
+npm run dev:generate:openapi
+npm run dev:generate:use-fetch
+npm run dev:generate:use-async-data
 ```
 
-## VSCode Setup
-
-### Recommended Extensions
-
-- **ESLint** - Code linting
-- **Prettier** - Code formatting
-- **TypeScript** - Language support
-- **GitLens** - Git integration
-- **Vitest** - Test runner
-
-### Settings
-
-Create `.vscode/settings.json`:
-
-```json
-{
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "files.eol": "\n"
-}
-```
-
-## Debugging
-
-### VSCode Debug Configuration
-
-Create `.vscode/launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug CLI",
-      "program": "${workspaceFolder}/src/cli/index.ts",
-      "args": [
-        "generate",
-        "-i", "test/fixtures/petstore.yaml",
-        "-o", "./output"
-      ],
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
-      "skipFiles": ["<node_internals>/**"]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Debug Current Test",
-      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
-      "args": ["run", "${file}"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen"
-    }
-  ]
-}
-```
-
-## Testing Changes
-
-### 1. Unit Tests
-
-Add tests for new features:
-
-```typescript
-// test/unit/parser.spec.ts
-import { describe, it, expect } from 'vitest'
-import { parseOpenAPI } from '~/src/parser'
-
-describe('parseOpenAPI', () => {
-  it('should parse valid OpenAPI spec', async () => {
-    const spec = await parseOpenAPI('./test/fixtures/petstore.yaml')
-    expect(spec.openapi).toBe('3.0.0')
-  })
-})
-```
-
-### 2. Integration Tests
-
-Test end-to-end generation:
-
-```typescript
-// test/integration/generate.spec.ts
-import { describe, it, expect } from 'vitest'
-import { generateComposables } from '~/src/generator'
-
-describe('generateComposables', () => {
-  it('should generate composables', async () => {
-    const files = await generateComposables(spec, {
-      mode: 'client',
-      outputDir: './tmp'
-    })
-    expect(files.length).toBeGreaterThan(0)
-  })
-})
-```
-
-### 3. Manual Testing
-
-Test with real project:
+Useful options:
 
 ```bash
-# Link package locally
-npm link
-
-# In test project
-cd ../test-nuxt-app
-npm link nuxt-openapi-hyperfetch
-
-# Generate
-npx nuxt-openapi-hyperfetch generate -i swagger.yaml -o ./composables
+npm run dev:generate:all -- --input ./swagger.yaml --output ./openapi
+npm run dev:generate:use-fetch -- --skip-openapi
+npm run dev:generate:use-async-data -- --base-url https://api.example.com
 ```
 
-## Keeping Up to Date
+## Typical development loops
+
+### Working on base OpenAPI output
+
+If you change `src/generate.ts` or anything related to the raw SDK/types output:
 
 ```bash
-# Fetch upstream changes
-git fetch upstream
-
-# Merge upstream main
-git checkout main
-git merge upstream/main
-
-# Push to your fork
-git push origin main
+npm run dev:generate:openapi
 ```
 
-## Common Issues
+### Working on `useFetch`
 
-### Node Version
+If you change files under `src/generators/use-fetch/`:
 
 ```bash
-# Check Node version
-node --version
-
-# Use nvm to switch versions
-nvm use 18
+npm run dev:generate:use-fetch
 ```
 
-### Dependencies Out of Sync
+### Working on `useAsyncData`
+
+If you change files under `src/generators/use-async-data/`:
 
 ```bash
-# Remove and reinstall
-rm -rf node_modules package-lock.json
-npm install
+npm run dev:generate:use-async-data
 ```
 
-### Build Errors
+### Working across generators
+
+If you touch shared parser or runtime code, rebuild everything:
 
 ```bash
-# Clean and rebuild
-npm run clean
-npm run build
+npm run dev:generate:all
 ```
 
-## Next Steps
+## When to update generated output
 
-- [Code Style →](/contributing/code-style)
-- [Testing →](/contributing/testing)
-- [Pull Requests →](/contributing/pull-requests)
+Regenerate `openapi/` whenever you change:
+
+- base OpenAPI generation
+- generator templates
+- shared runtime helpers used by generated composables
+- operation naming behavior
+- docs that rely on checked-in generated examples
+
+If your change is internal and does not affect generated output, explain that in the pull request.
+
+## Module-focused changes
+
+When editing `src/module/` or `src/config/`, verify:
+
+- the option name matches current public docs
+- defaults in the docs match the source
+- auto-import and build-hook behavior still make sense in `nuxt dev` and `nuxt build`
+
+## Debugging tips
+
+- keep `swagger.yaml` small enough to reproduce the issue quickly
+- compare `src/` changes with the regenerated `openapi/` output immediately
+- prefer fixing the generator or runtime source, not patching generated files by hand
+- if behavior changed intentionally, update the relevant docs page in the same change
+
+## Recommended editor setup
+
+The repo already includes `.editorconfig`, ESLint, and Prettier config. Any editor is fine as long as it respects those settings.
+
+In VS Code, enabling format-on-save and ESLint fixes on save is enough for most contributor work.
+
+## Related pages
+
+- [Code style](/contributing/code-style)
+- [Testing expectations](/contributing/testing)
+- [Pull request guide](/contributing/pull-requests)

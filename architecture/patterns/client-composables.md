@@ -1,247 +1,73 @@
 # Client Composable Patterns
 
-Design patterns for generated client-side composables.
+Generated client composables are wrapper layers on top of the base SDK output.
 
-## Composable Types
+## Output structure
 
-### useFetch Composables
+When enabled, the module writes client composables into:
 
-For data that needs SSR support:
+- `openapi/composables/use-fetch`
+- `openapi/composables/use-async-data`
+- `openapi/composables/shared/runtime`
 
-```typescript
-export function useFetchPet(
-  id: MaybeRef<number>,
-  options?: UseFetchOptions<Pet>
-) {
-  return useFetch<Pet>(
-    () => `/pets/${unref(id)}`,
-    options
-  )
-}
-```
+## Param shape pattern
 
-**When to use:**
-- Data needed for initial page render
-- SEO-critical content
-- Data that changes frequently
+Generated wrappers follow the SDK request shape instead of flattening params.
 
-### useAsyncData Composables
+Typical request objects are grouped by transport concern:
 
-For more control over data fetching:
+- `path`
+- `query`
+- `body`
+- `headers` when needed by the underlying SDK call
 
-```typescript
-export function useAsyncDataPet(
-  id: MaybeRef<number>,
-  options?: UseAsyncDataOptions<Pet>
-) {
-  return useAsyncData(
-    `pet-${unref(id)}`,
-    () => $fetch<Pet>(`/pets/${unref(id)}`),
-    options
-  )
-}
-```
+Example:
 
-**When to use:**
-- Custom cache keys needed
-- Manual data transformation
-- More control over fetching logic
-
-## Parameter Patterns
-
-### Path Parameters
-
-```typescript
-// Single parameter
-function useFetchPet(id: MaybeRef<number>)
-
-// Multiple parameters
-function useFetchPetPhoto(
-  petId: MaybeRef<number>,
-  photoId: MaybeRef<number>
-)
-```
-
-### Query Parameters
-
-```typescript
-// Object parameter
-function useFetchPets(
-  params: MaybeRef<{
-    status?: string
-    category?: string
-    limit?: number
-  }>
-)
-```
-
-### Request Body
-
-```typescript
-// POST/PUT/DELETE body
-function useCreatePet(
-  options?: UseFetchOptions<Pet>
-) {
-  return useFetch<Pet>('/pets', {
-    method: 'POST',
-    immediate: false,
-    ...options
-  })
-}
-
-// Usage
-const { execute } = useCreatePet()
-await execute({ body: { name: 'Fluffy' } })
-```
-
-## Reactivity Patterns
-
-### Reactive Parameters
-
-```typescript
-const id = ref(1)
-const { data: pet } = useFetchPet(id)
-
-// Changes automatically when id changes
-id.value = 2
-```
-
-### Reactive Query Params
-
-```typescript
-const filters = ref({ status: 'available' })
-const { data: pets } = useFetchPets(filters)
-
-// Refetch when filters change
-filters.value.status = 'pending'
-```
-
-### Computed Parameters
-
-```typescript
-const route = useRoute()
-const petId = computed(() => Number(route.params.id))
-
-const { data: pet } = useFetchPet(petId)
-```
-
-## Callback Patterns
-
-### Success Navigation
-
-```typescript
-const { execute } = useCreatePet({
-  onSuccess: () => {
-    navigateTo('/pets')
-  }
+```ts
+useFetchGetPetById({
+  path: { petId: 123 },
 })
 ```
 
-### Error Handling
+## Shared runtime pattern
 
-```typescript
-const { execute } = useUpdatePet(1, {
-  onError: (error) => {
-    toast.error(error.message)
-  }
-})
-```
+Both client families reuse shared helpers for:
 
-### Loading States
+- `onRequest`, `onSuccess`, `onError`, `onFinish`
+- global callbacks from `$getGlobalApiCallbacks`
+- global headers from `useApiHeaders()` or `$getApiHeaders`
+- `pick` before `transform`
+- pagination state and request injection
 
-```typescript
-const globalLoading = useState('loading', () => false)
+## Family split
 
-const { execute } = useCreatePet({
-  onRequest: () => {
-    globalLoading.value = true
-  },
-  onFinish: ({ success }) => {
-    globalLoading.value = false
-    console.log('Request finished:', success ? 'success' : 'failed')
-  }
-})
-```
+### `useFetch`
 
-## Cache Patterns
+Best for the simplest Nuxt data-fetching integration.
 
-### Default Caching
+Pattern:
 
-```typescript
-// Automatically cached by key
-const { data: pet } = useFetchPet(1)
-```
+- native `useFetch` ergonomics
+- shared runtime features
+- top-level pagination helpers
 
-### Manual Refresh
+### `useAsyncData`
 
-```typescript
-const { data: pet, refresh } = useFetchPet(1)
+Best when cache identity or raw response metadata matters.
 
-// Manually refresh
-await refresh()
-```
+Pattern:
 
-### Cache Invalidation
+- generated cache identity from key + resolved URL + params
+- optional `cacheKey` override
+- raw variant support
+- pagination helpers inside `pagination.value`
 
-```typescript
-const { refresh: refreshPets } = useFetchPets()
+## Auto-import pattern
 
-const { execute: createPet } = useCreatePet({
-  onSuccess: () => {
-    refreshPets() // Invalidate list cache
-  }
-})
-```
+When `enableAutoImport` is enabled, the module registers generated composable directories automatically so pages and components can use them without manual imports.
 
-## Lazy Loading
+## Related guides
 
-### Immediate vs Lazy
-
-```typescript
-// Immediate (default) - fetches on mount
-const { data: pet } = useFetchPet(1)
-
-// Lazy - waits for execute()
-const { data: pet, execute } = useFetchPet(1, { 
-  immediate: false 
-})
-await execute()
-```
-
-### Conditional Fetching
-
-```typescript
-const userId = computed(() => route.params.userId)
-
-const { data: user } = useFetchUser(userId, {
-  // Only fetch when userId exists
-  immediate: computed(() => !!userId.value)
-})
-```
-
-## Transform Patterns
-
-### Response Transformation
-
-```typescript
-const { data: pet } = useFetchPet(1, {
-  transform: (pet) => ({
-    ...pet,
-    displayName: `${pet.name} (${pet.category})`
-  })
-})
-```
-
-### Pick Specific Fields
-
-```typescript
-const { data: pet } = useFetchPet(1, {
-  pick: ['id', 'name', 'category']
-})
-```
-
-## Next Steps
-
-- [Server Composables →](/architecture/patterns/server-composables)
-- [Error Handling →](/architecture/patterns/error-handling)
-- [Basic Usage →](/composables/use-fetch/basic-usage)
+- [Composables overview](/composables/)
+- [useFetch](/composables/use-fetch/)
+- [useAsyncData](/composables/use-async-data/)

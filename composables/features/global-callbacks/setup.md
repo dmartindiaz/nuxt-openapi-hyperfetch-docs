@@ -27,7 +27,7 @@ The `provide: { getGlobalApiCallbacks: () => globalCallbacks }` block is mandato
 
 ## Authentication
 
-The most common use case � add an auth token to every request and redirect on 401:
+The most common use case is adding an auth token to every request and redirecting on `401`:
 
 ```typescript
 // plugins/api-callbacks.ts
@@ -102,7 +102,7 @@ Use any Nuxt composable at the plugin level (not inside the callbacks):
 ```typescript
 // plugins/api-callbacks.ts
 export default defineNuxtPlugin(() => {
-  const authStore = useAuthStore() // �S& Call composables here
+  const authStore = useAuthStore()
   const { locale } = useI18n()
 
   const globalCallbacks = {
@@ -151,7 +151,7 @@ export default defineNuxtConfig({
 Use Nuxt file suffixes to restrict where the plugin runs:
 
 ```typescript
-// plugins/api-callbacks.client.ts � client only
+// plugins/api-callbacks.client.ts
 export default defineNuxtPlugin(() => {
   const globalCallbacks = {
     onRequest: ({ headers }) => {
@@ -183,15 +183,15 @@ export default defineNuxtPlugin(() => {
 
 ## Best Practices
 
-### �S& Do
+### Do
 
 ```typescript
-// �S& Return modifications from onRequest
+// Return modifications from onRequest
 onRequest: ({ headers }) => {
   return { headers: { ...headers, 'X-Custom': 'value' } }
 }
 
-// �S& Return false to cancel local callback execution
+// Return false to suppress local callback execution
 onError: (error) => {
   if (error.status === 401) {
     navigateTo('/login')
@@ -199,9 +199,9 @@ onError: (error) => {
   }
 }
 
-// �S& Call composables at plugin level, not inside callbacks
+// Call composables at plugin level, not inside callbacks
 export default defineNuxtPlugin(() => {
-  const store = useAuthStore() // �S& here
+  const store = useAuthStore()
   const globalCallbacks = {
     onRequest: () => {
       store.token // use it here
@@ -210,26 +210,26 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-### �R Don't
+### Don't
 
 ```typescript
-// �R Don't mutate headers directly � won't work
+// Don't mutate headers directly
 onRequest: ({ headers }) => {
-  headers['Authorization'] = 'Bearer token' // �R
+  headers['Authorization'] = 'Bearer token'
 }
 
-// �R Don't call composables inside callbacks
+// Don't call composables inside callbacks
 onRequest: ({ headers }) => {
-  const store = useAuthStore() // �R Call this at plugin level instead
+  const store = useAuthStore()
 }
 
-// �R Don't make async API calls inside callbacks
+// Don't make async API calls inside callbacks unless you fully control the consequences
 onRequest: async () => {
-  await $fetch('/other-endpoint') // �R Race conditions
+  await $fetch('/other-endpoint')
 }
 ```
 
 ## Next Steps
 
-- [Control Options � ](/composables/features/global-callbacks/control-options)
-- [URL Patterns � ](/composables/features/global-callbacks/patterns)
+- [Control Options](/composables/features/global-callbacks/control-options)
+- [URL Patterns](/composables/features/global-callbacks/patterns)

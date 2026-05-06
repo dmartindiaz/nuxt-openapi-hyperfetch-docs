@@ -106,6 +106,120 @@
   }
 }
 
+.Layout.home-large-logo .VPHero .container {
+  align-items: center;
+}
+
+.Layout.home-large-logo .VPHero .main,
+.Layout.home-large-logo .VPHero .image {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.Layout.home-large-logo .VPHero .main {
+  align-items: flex-start;
+}
+
+.Layout.home-large-logo .VPHero .image {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.Layout.home-large-logo .VPHero .image-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: min(360px, 86vw);
+  height: min(360px, 86vw);
+  margin: 0 auto;
+}
+
+.Layout.home-large-logo .VPHero .image-bg {
+  z-index: 0;
+}
+
+.Layout.home-large-logo .VPHero .image-src {
+  width: 100%;
+  height: 100%;
+  max-width: 360px;
+  max-height: 360px;
+  position: relative;
+  z-index: 1;
+  inset: auto;
+  transform: none;
+}
+
+.Layout.home-large-logo .VPHero .actions .VPButton {
+  font-size: 16px;
+}
+
+@media (min-width: 640px) {
+  .Layout.home-large-logo .VPHero .image {
+    max-width: 500px;
+  }
+
+  .Layout.home-large-logo .VPHero .actions .VPButton {
+    font-size: 17px;
+  }
+
+  .Layout.home-large-logo .VPHero .image-container {
+    width: 420px;
+    height: 420px;
+  }
+
+  .Layout.home-large-logo .VPHero .image-src {
+    max-width: 420px;
+    max-height: 420px;
+  }
+}
+
+@media (max-width: 959px) {
+  .Layout.home-large-logo .VPHero .container {
+    align-items: center;
+  }
+
+  .Layout.home-large-logo .VPHero .main {
+    align-items: center;
+    text-align: center;
+  }
+
+  .Layout.home-large-logo .VPHero .actions {
+    justify-content: center;
+  }
+
+  .Layout.home-large-logo .VPHero .image {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+@media (min-width: 960px) {
+  .Layout.home-large-logo .VPHero .main {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .Layout.home-large-logo .VPHero .image {
+    max-width: 600px;
+  }
+
+  .Layout.home-large-logo .VPHero .image-container {
+    width: 520px;
+    height: 520px;
+  }
+
+  .Layout.home-large-logo .VPHero .image-src {
+    max-width: 520px;
+    max-height: 520px;
+  }
+}
+
 /**
  * Component: Custom Block
  * -------------------------------------------------------------------------- */
@@ -123,4 +237,28 @@
 
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
+}
+
+.VPFeatures .box > img.VPImage {
+  display: block;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+
+.VPFeatures .box:first-child > img.VPImage {
+  width: 24px;
+  height: 24px;
+  padding: 12px;
+  border-radius: 6px;
+  background-color: rgba(142, 150, 170, 0.14);
+}
+
+.VPFeatures .box:last-child > img.VPImage {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+}
+
+.dark .VPFeatures .box:first-child > img.VPImage {
+  filter: invert(1) brightness(1.15);
 }

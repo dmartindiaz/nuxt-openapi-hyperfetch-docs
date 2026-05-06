@@ -14,7 +14,9 @@ The `data` parameter is **fully typed** based on your OpenAPI schema.
 
 ```typescript
 useFetchGetPetById(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     onSuccess: (pet) => {
       // pet is typed as Pet from OpenAPI
@@ -75,7 +77,9 @@ useFetchCreatePet(
 const { data: pets, refresh: refreshPets } = useFetchGetPets()
 
 const { execute: deletePet } = useFetchDeletePet(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     immediate: false,
     onSuccess: () => {
@@ -141,7 +145,9 @@ The data parameter is **fully typed** from your OpenAPI schema:
 
 ```typescript
 useFetchGetPetById(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     onSuccess: (pet) => {
       // TypeScript knows Pet structure
@@ -153,6 +159,10 @@ useFetchGetPetById(
   }
 )
 ```
+
+For standard wrappers, `onSuccess` receives the processed response body. That means `pick` and `transform` have already run.
+
+For `useAsyncData...Raw` wrappers, `onSuccess` can also receive response metadata as a second argument.
 
 ## When It Runs
 
@@ -191,7 +201,10 @@ useFetchGetPetById(
 
 ```typescript
 useFetchUpdatePet(
-  { petId: 123, body: updates.value },
+  {
+    path: { petId: 123 },
+    body: updates.value,
+  },
   {
     onSuccess: (pet) => {
       showToast('Pet updated!', 'success')

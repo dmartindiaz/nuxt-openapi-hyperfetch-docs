@@ -1,66 +1,51 @@
 # Guide
 
-Welcome to the Nuxt OpenAPI Hyperfetch guide! This comprehensive guide will help you get started with generating type-safe Nuxt composables from OpenAPI specifications.
+This guide documents the current Nuxt-only workflow for `nuxt-openapi-hyperfetch`.
 
-## What You'll Learn
+The module reads a local OpenAPI document during Nuxt builds, generates an SDK into `openapi/`, and optionally adds `useFetch`, `useAsyncData`, `nuxtServer`, and connector layers on top of that SDK.
 
-This guide covers everything you need to know about using nuxt-openapi-hyperfetch:
+## Start Here
 
-### Getting Started
-
-- **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** - Understand what this tool does and why you should use it
-- **[Getting Started](./getting-started)** - Fast setup with the two available workflows
-- **[Use as Nuxt Module](./use-as-nuxt-module)** - Configure generation in `nuxt.config.ts`
-- **[Use as CLI](./use-as-cli)** - Full CLI installation, commands, and examples
-- **[Core Concepts](./core-concepts)** - Learn the fundamental concepts
-
-### Usage
-
-- **[Generating Composables](./generating-composables)** - Learn how to generate composables from your OpenAPI spec
-- **[Choosing a Generator](./choosing-a-generator)** - Understand when to use useFetch vs useAsyncData
+- **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** - Product overview and generated outputs
+- **[Getting Started](./getting-started)** - Minimal setup in `nuxt.config.ts`
+- **[Use as Nuxt Module](./use-as-nuxt-module)** - Full module configuration reference
+- **[Core Concepts](./core-concepts)** - How generation, runtimes, and composables fit together
+- **[Generating Composables](./generating-composables)** - What gets generated and when
+- **[Choosing a Generator](./choosing-a-generator)** - Decide between `useFetch`, `useAsyncData`, `nuxtServer`, and `connectors`
 
 ## Quick Start
 
-```bash
-# Install
-npm install nuxt-openapi-hyperfetch
-
-# CLI workflow
-npx nxh generate -i swagger.yaml -o ./composables
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+	modules: ['nuxt-openapi-hyperfetch'],
+	openapi: {
+		input: './swagger.yaml',
+		output: './openapi',
+		generators: ['useFetch', 'useAsyncData'],
+	},
+})
 ```
 
-## Key Features
+Run `npx nuxt dev` or `npm run dev` and the module will generate the selected outputs before the build starts.
 
-- ✅ **Type-Safe** - Full TypeScript support from OpenAPI schemas
-- ✅ **Dual Mode** - Generate client composables (useFetch/useAsyncData) or server composables
-- ✅ **SSR Support** - Works seamlessly with Nuxt's Server-Side Rendering
-- ✅ **Callbacks** - Per-request and global callbacks for auth, logging, etc.
-- ✅ **BFF Pattern** - Server composables for Backend-for-Frontend architecture
+## What You Get
 
-## Learning Path
+- Type-safe SDK files generated from your OpenAPI schema
+- Nuxt-friendly composables built on top of the SDK
+- Optional server route generation for BFF-style flows
+- Optional headless connectors for `useAsyncData`
+- Auto-import support for generated composables
 
-We recommend following this path:
+## Suggested Reading Order
 
-1. Start with **[What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)** to understand the basics
-2. Follow **[Getting Started](./getting-started)** and choose your workflow
-3. If you use Nuxt module mode, continue with **[Use as Nuxt Module](./use-as-nuxt-module)**
-4. If you use terminal-first mode, continue with **[Use as CLI](./use-as-cli)**
-5. Read **[Core Concepts](./core-concepts)** to understand how it works
-6. Learn about **[Generating Composables](./generating-composables)** in detail
-7. Explore the **[Composables](/composables/)** section for detailed API documentation
-8. Check out the **[Composables](/composables/)** section for all API details
+1. Read [What is Nuxt OpenAPI Hyperfetch?](./what-is-nuxt-openapi-hyperfetch)
+2. Follow [Getting Started](./getting-started)
+3. Keep [Use as Nuxt Module](./use-as-nuxt-module) open while configuring the module
+4. Read [Core Concepts](./core-concepts) before customizing generated behavior
+5. Use [Choosing a Generator](./choosing-a-generator) to trim your output to what you actually need
 
 ## Need Help?
 
-- **[Troubleshooting](/troubleshooting/)** - Common issues and solutions
-- **[Contributing](/contributing/)** - How to contribute
-
-## Next Steps
-
-Ready to get started?
-
-- [What is Nuxt OpenAPI Hyperfetch? →](./what-is-nuxt-openapi-hyperfetch)
-- [Getting Started →](./getting-started)
-- [Use as Nuxt Module →](./use-as-nuxt-module)
-- [Use as CLI →](./use-as-cli)
-- [Core Concepts →](./core-concepts)
+- [Troubleshooting](/troubleshooting/)
+- [Contributing](/contributing/)

@@ -12,7 +12,7 @@ interface OnRequestContext {
   method: string                   // HTTP method (GET, POST, etc.)
   headers?: Record<string, string> // Request headers
   body?: any                       // Request body
-  query?: Record<string, any>      // Query parameters
+  query?: Record<string, any>      // Query parameters used by the request wrapper
 }
 
 interface ModifiedRequestContext {
@@ -30,6 +30,24 @@ useFetchGetPets({}, {
     console.log(`Making ${method} request to ${url}`)
   }
 })
+```
+
+For operation wrappers with path params, use the generated SDK-shaped params object:
+
+```ts
+useFetchGetPetById(
+  {
+    path: { petId: 123 },
+  },
+  {
+    onRequest: ({ headers }) => ({
+      headers: {
+        ...headers,
+        'X-Request-ID': crypto.randomUUID(),
+      },
+    }),
+  }
+)
 ```
 
 ## Common Use Cases
@@ -233,9 +251,9 @@ onRequest: async ({ url }) => {
 ### ❌ Don't
 
 ```typescript
-// ❌ Don't modify directly (won't work!)
+// ❌ Don't rely on direct mutation
 onRequest: ({ headers }) => {
-  headers['X-Custom'] = 'value' // ❌ Direct mutation doesn't work!
+  headers['X-Custom'] = 'value'
 }
 
 // ❌ Don't try to modify url/method
@@ -253,6 +271,8 @@ onRequest: async () => {
   await $fetch('/other-endpoint') // ❌ Can cause issues
 }
 ```
+
+Prefer returning a new object instead of mutating the incoming context directly. That is the contract the runtime consistently merges for both local and global callbacks.
 
 ## Next Steps
 

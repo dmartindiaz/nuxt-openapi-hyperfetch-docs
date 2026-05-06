@@ -1,140 +1,89 @@
 # useAsyncData Composables
 
-Generated composables wrap Nuxt's `useAsyncData`, adding type safety and extra features.
+Generated `useAsyncData` composables wrap Nuxt's `useAsyncData` and add the same shared runtime features as `useFetch`, plus a `Raw` variant for full response access.
 
-## Overview
+## What you get
 
-::: tip Nuxt useAsyncData Documentation
-Generated composables wrap Nuxt's `useAsyncData`. For core features like `data`, `pending`, `error`, `refresh()`, cache keys, and options like `immediate`, `watch`, `server`, `dedupe`, see:
+- Typed params and typed response data
+- Auto-generated cache identity from operation key, resolved URL, and params
+- Optional `cacheKey` override through the composable options
+- Lifecycle callbacks
+- Global callback rules and global headers
+- `pick` and `transform`
+- Optional pagination helpers
+- A `Raw` variant that returns `data`, `headers`, `status`, and `statusText`
 
-**[Nuxt useAsyncData Official Documentation →](https://nuxt.com/docs/api/composables/use-async-data)**
+::: tip Nuxt reference
+For the complete behavior of `data`, `pending`, `error`, `refresh`, `server`, `lazy`, `dedupe`, and native caching semantics, see the Nuxt docs:
+
+[Nuxt useAsyncData Documentation](https://nuxt.com/docs/api/composables/use-async-data)
 :::
 
-## What the CLI Adds
+## Standard variant
 
-- ✅ **Type Safety**: Automatic types from OpenAPI schema
-- ✅ **Reactive Params**: Pass a `ref` or `computed` — auto-refresh when it changes (not in native Nuxt)
-- ✅ **Lifecycle Callbacks**: onRequest, onSuccess, onError, onFinish
-- ✅ **Pick Fields**: Select specific response fields with dot notation
-- ✅ **Response Headers** (Raw variant): Access headers & status (not in Nuxt)
-- ✅ **Global Callbacks**: Apply hooks to all requests
-- ✅ **Global Headers**: Automatic authentication headers
-- ✅ **Request Interception**: Modify requests before sending
-
-## Two Variants Generated
-
-For each OpenAPI endpoint, the CLI generates **two composables**:
-
-### Standard Variant
-
-Returns only data (like Nuxt's useAsyncData):
-
-```typescript
-const { data: pets, pending, error } = useAsyncDataGetPets()
-// data: Ref<Pet[]>
+```ts
+const { data, pending, error } = useAsyncDataGetPets()
 ```
 
-### Raw Variant (CLI Addition)
+This is the usual choice when you want the response body only.
 
-Returns full response with headers, status, and data:
+## Raw variant
 
-```typescript
+```ts
 const { data: response } = useAsyncDataGetPetsRaw()
-// response: Ref<{ data: Pet[], headers: Headers, status: number, statusText: string }>
+
+console.log(response.value?.status)
+console.log(response.value?.headers)
+console.log(response.value?.data)
 ```
 
-### Cache Key Behavior
+Use the raw variant when you need response metadata such as pagination headers, rate-limit headers, or ETags.
 
-Generated `useAsyncData*` composables create a key automatically from operation + resolved URL + params.
+## Cache keys
 
-- Auto-key example: `useAsyncDataGetPetById-/pet/1` vs `useAsyncDataGetPetById-/pet/2` (independent cache entries)
-- Auto-key example with query params: `useAsyncDataFindPetsByStatus-/pet/findByStatus-{"status":"available"}`
-- No params example: `useAsyncDataGetInventory-/store/inventory`
+The runtime computes a key from the generated composable key, resolved URL, and serialized params. That keeps different param combinations isolated by default.
 
-You can still pass a custom key if you want manual cache sharing between components (for example, intentional SSR payload sharing):
+If you want to override that behavior, pass `cacheKey` in the options object:
 
-```typescript
+```ts
 const { data } = useAsyncDataFindPetsByStatus(
-  { status: 'available' },
-  undefined,
-  'mi-clave'
-)
-```
-
-::: tip Response Headers - Not in Nuxt
-**Important**: Nuxt's native `useAsyncData` does NOT return response headers or status codes. The Raw variant is a CLI addition for accessing pagination headers, rate limits, ETags, and more.
-:::
-
-## Quick Example
-
-### Standard Variant
-
-```vue
-<script setup lang="ts">
-// Type-safe composable with lifecycle callbacks
-const { data: pets, pending, error } = useAsyncDataGetPets(
-  undefined,
+  { query: { status: 'available' } },
   {
-    onSuccess: (pets) => {
-      console.log(`Loaded ${pets.length} pets`)
-    }
+    cacheKey: 'pets-available',
   }
 )
-</script>
-
-<template>
-  <div v-if="pending">Loading...</div>
-  <div v-else-if="error">Error: {{ error.message }}</div>
-  <ul v-else>
-    <li v-for="pet in pets" :key="pet.id">{{ pet.name }}</li>
-  </ul>
-</template>
 ```
 
-### Raw Variant (with Headers)
+## Reactivity behavior
 
-```vue
-<script setup lang="ts">
-const { data: response } = useAsyncDataGetPetsRaw()
+For GET requests, the runtime watches reactive URL and param sources by default.
 
-const totalCount = computed(() => {
-  return response.value?.headers.get('X-Total-Count')
-})
-</script>
+For mutations such as POST, PUT, PATCH, and DELETE, automatic watching is off by default unless you opt into it with `watch: true`.
 
-<template>
-  <div>
-    <p>Total: {{ totalCount }}</p>
-    <ul>
-      <li v-for="pet in response?.data" :key="pet.id">
-        {{ pet.name }}
-      </li>
-    </ul>
-  </div>
-</template>
+```ts
+const petId = ref(1)
+
+const { data } = useAsyncDataGetPetById(
+  computed(() => ({
+    path: { petId: petId.value },
+  }))
+)
 ```
 
-## When to Use
+## Pagination shape
 
-### ✅ Use useAsyncData When:
+With `useAsyncData`, pagination helpers are exposed inside `pagination` itself:
 
-- **Need response headers/status**: Pagination, rate limits, ETags
-- **Complex data transformations**: Multi-step processing
-- **Multiple API calls**: Combine several requests
-- **Fine-grained cache control**: Precise cache key management
+```ts
+const { data, pagination } = useAsyncDataGetPets({}, { paginated: true })
 
-### ❌ Use useFetch Instead When:
+pagination.value?.nextPage()
+pagination.value?.setPerPage(50)
+```
 
-- **Simple GET requests**: useFetch is simpler
-- **Don't need headers**: Standard data fetching
-- **Auto cache keys are fine**: Less boilerplate
+## Related guides
 
-[See detailed comparison →](/composables/use-async-data/vs-use-fetch)
-
-## Learn More
-
-- [Basic Usage →](/composables/use-async-data/basic-usage)
-- [Pagination →](/composables/use-async-data/pagination)
-- [Raw Responses →](/composables/use-async-data/raw-responses)
-- [useFetch vs useAsyncData →](/composables/use-async-data/vs-use-fetch)
-- [Shared Features →](/composables/features/)
+- [Basic usage](/composables/use-async-data/basic-usage)
+- [Raw responses](/composables/use-async-data/raw-responses)
+- [Pagination](/composables/use-async-data/pagination)
+- [useAsyncData vs useFetch](/composables/use-async-data/vs-use-fetch)

@@ -1,277 +1,80 @@
 # What is Nuxt OpenAPI Hyperfetch?
 
-Nuxt OpenAPI Hyperfetch is a CLI tool that automatically generates **type-safe Nuxt 3 composables** from OpenAPI/Swagger specifications. It eliminates the need to write repetitive API integration code by creating production-ready composables that work seamlessly with Nuxt's SSR architecture.
+Nuxt OpenAPI Hyperfetch is a Nuxt module that turns a local OpenAPI document into a type-safe client layer for your application.
 
-## The Problem
+Instead of hand-writing wrappers for every endpoint, you configure the module once and generate:
 
-When building Nuxt applications that consume REST APIs, developers typically:
+- the OpenAPI SDK and types
+- `useFetch` composables
+- `useAsyncData` composables
+- optional `nuxtServer` routes
+- optional headless connectors built on top of `useAsyncData`
 
-1. **Manually write composables** for each endpoint
-2. **Copy-paste types** from API documentation
-3. **Repeat the same patterns** for error handling, loading states, and callbacks
-4. **Struggle with SSR compatibility** when using external HTTP clients
+## The problem it solves
 
-This is tedious, error-prone, and doesn't scale well as APIs grow.
+When a Nuxt app consumes a REST API, the same work tends to repeat:
 
-## The Solution
+1. Rewriting request wrappers by hand
+2. Duplicating request and response types
+3. Repeating loading, error, and callback wiring
+4. Rebuilding the same patterns for each endpoint
 
-Nuxt OpenAPI Hyperfetch solves this by:
+That scales badly as the schema grows and makes refactors noisy.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     📄 OpenAPI Specification                        │
-│                      Describe tu API REST                           │
-└──────────────────────┬──────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                  ⚡ Nuxt OpenAPI Hyperfetch CLI                     │
-└──┬────────────────┬─────────────────┬─────────────────┬────────────┘
-   │                │                 │                 │
-   │                │                 │                 │
-   ▼                ▼                 ▼                 ▼
-┌──────────┐  ┌──────────┐  ┌───────────────┐  ┌──────────────────┐
-│ useFetch │  │useAsync  │  │ nuxt-server   │  │  TypeScript      │
-│Composable│  │Composable│  │ Server Routes │  │     Types        │
-│          │  │          │  │   /api/*      │  │  Pet, User...    │
-│  Forms   │  │ Complex  │  │   (BFF)       │  │                  │
-│and simple│  │  logic   │  │  (optional)   │  │  Auto-generated  │
-│  calls   │  │          │  │               │  │                  │
-└─────┬────┘  └─────┬────┘  └───────┬───────┘  └────────┬─────────┘
-      │             │               │                    │
-      │             │               │                    │ (tipado)
-      └─────────────┴───────────────┴────────────────────┘
-                                    │
-                                    ▼
-              ┌─────────────────────────────────────────┐
-              │      ✨ Your Nuxt Application          │
-              ├─────────────────────────────────────────┤
-              │  ✅ Type-safe                          │
-              │  ✅ SSR Ready                          │
-              │  ✅ Callbacks (onSuccess, onError...)  │
-              └─────────────────────────────────────────┘
+## The generation flow
+
+```text
+OpenAPI file
+  -> generated SDK and types in openapi/
+  -> generated Nuxt composables in openapi/composables/
+  -> optional server routes in server/routes/api/
+  -> optional connectors in openapi/composables/connectors/
 ```
 
-### Key Features
+## Why it fits Nuxt
 
-#### 🎯 **Type-Safety**
+- Generated client composables are based on Nuxt data primitives.
+- The module runs as part of the Nuxt build lifecycle.
+- Auto-import can register generated composables for direct use in your app.
+- `nuxtServer` generation supports BFF-style flows when you want the server to own the upstream API interaction.
 
-All generated composables have full TypeScript support. Request parameters, response types, and error types are automatically inferred from your OpenAPI schema:
+## What gets generated
 
-```typescript
-// ✅ Type-safe parameters
-const { data } = useFetchGetPetById({ petId: 123 })
-//                                     ^ TypeScript knows this requires { petId: number }
+For a typical setup, the output looks like this:
 
-// ✅ Type-safe response
-data.value?.name
-//          ^ TypeScript knows Pet has a 'name' property
-
-// ❌ TypeScript catches errors
-useFetchGetPetById({ id: 123 })
-//                   ^ Error: Property 'petId' is required
+```text
+openapi/
+  client/
+  core/
+  client.gen.ts
+  index.ts
+  sdk.gen.ts
+  types.gen.ts
+  composables/
+    use-fetch/
+    use-async-data/
+    connectors/
 ```
 
-#### ⚡ **SSR Compatible**
+If `nuxtServer` is enabled, route handlers are generated separately into `server/routes/api/` by default.
 
-Generated composables use Nuxt's built-in `useFetch` and `useAsyncData`, which means:
+## When to use it
 
-- ✅ Requests execute on the server during SSR
-- ✅ Data is serialized and hydrated on the client
-- ✅ No "flashing" content or extra client-side requests
-- ✅ Full support for Nuxt's data fetching lifecycle
+This module is a good fit when:
 
-#### 🔄 **Lifecycle Callbacks**
+- your Nuxt app already has an OpenAPI or Swagger document
+- you want a generated SDK plus Nuxt-native wrappers
+- you want consistent request patterns across the app
+- you want the option to move some API access behind server routes later
 
-Every composable supports four lifecycle callbacks:
+It is a poor fit when:
 
-```typescript
-useFetchGetPetById(
-  { petId: 123 },
-  {
-    onRequest: ({ url, params }) => {
-      // Before request is sent
-      console.log('Fetching from:', url)
-    },
-    onSuccess: (data) => {
-      // When request succeeds (200-299)
-      showToast(`Loaded ${data.name}`, 'success')
-    },
-    onError: (error) => {
-      // When request fails (400+, network error)
-      showToast('Failed to load pet', 'error')
-    },
-    onFinish: ({ success }) => {
-      // Always runs (success or failure)
-      hideLoadingSpinner()
-      console.log('Request finished:', success ? 'success' : 'failed')
-    }
-  }
-)
-```
+- your project is not using Nuxt
+- you do not have a machine-readable API contract
+- you only need one or two handwritten calls and do not want generated code at all
 
-#### 🔌 **Global Callbacks**
+## Next steps
 
-Define callbacks once in a plugin, apply them everywhere:
-
-```typescript
-// plugins/api-global-callbacks.ts
-export default defineNuxtPlugin(() => {
-  useGlobalCallbacks({
-    onRequest: ({ headers }) => {
-      // Add auth token to ALL requests
-      headers['Authorization'] = `Bearer ${getToken()}`
-    },
-    onError: (error) => {
-      // Handle ALL errors in one place
-      if (error.status === 401) {
-        navigateTo('/login')
-      }
-    }
-  })
-})
-```
-
-#### 🎛️ **Request Interception**
-
-Modify requests before they're sent:
-
-```typescript
-useFetchGetUsers(
-  {},
-  {
-    onRequest: ({ url, body, headers, query }) => {
-      // Add custom header
-      headers['X-Custom-Header'] = 'value'
-      
-      // Modify query params
-      query.limit = 100
-      
-      // Transform body
-      body.timestamp = Date.now()
-    }
-  }
-)
-```
-
-#### 🚀 **Multiple Generator Types**
-
-Choose the pattern that fits your needs:
-
-| Generator | Use Case | SSR | Type Safety |
-|-----------|----------|-----|-------------|
-| `useFetch` | Simple API calls, forms | ✅ | ✅ |
-| `useAsyncData` | Complex logic, transformations | ✅ | ✅ |
-| `nuxtServer` | BFF pattern, auth context, transformers | ✅ | ✅ |
-
-## How It Works
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  📄 PASO 1: Parse OpenAPI                                       │
-│  Lee swagger.yaml o openapi.json                                │
-└─────────────────────────┬────────────────────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  🔍 PASO 2: Extract Endpoints                                    │
-│  Identifica todas las operaciones                                │
-│  GET, POST, PUT, DELETE, PATCH                                   │
-└─────────────────────────┬────────────────────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  📦 PASO 3: Generate Types                                       │
-│  Create TypeScript interfaces                                    │
-│  from schemas and components                                     │
-└─────────────────────────┬────────────────────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  ⚙️  PASO 4: Create Composables                                  │
-│  Generate wrapper functions                                      │
-│  useFetch* or useAsync* for each endpoint                        │
-└─────────────────────────┬────────────────────────────────────────┘
-                          │
-                          ▼
-┌──────────────────────────────────────────────────────────────────┐
-│  📋 PASO 5: Copy Runtime Files                                   │
-│  Include helpers for callbacks                                   │
-│  and global configuration                                        │
-└─────────────────────────┬────────────────────────────────────────┘
-                          │
-                          ▼
-╔══════════════════════════════════════════════════════════════════╗
-║  ✅ STEP 6: Ready to Use!                                        ║
-║  Import and use in your Nuxt app                                 ║
-║  with full type safety                                           ║
-╚══════════════════════════════════════════════════════════════════╝
-```
-
-## What Gets Generated?
-
-For an endpoint like this in your OpenAPI spec:
-
-```yaml
-/pets/{petId}:
-  get:
-    operationId: getPetById
-    parameters:
-      - name: petId
-        in: path
-        required: true
-        schema:
-          type: integer
-    responses:
-      200:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Pet'
-```
-
-Nuxt OpenAPI Hyperfetch creates:
-
-```typescript
-// Generated composable
-export function useFetchGetPetById(
-  params: { petId: number },
-  options?: ApiRequestOptions<Pet>
-) {
-  return useApiRequest<Pet>('/pets/{petId}', {
-    method: 'GET',
-    pathParams: params,
-    ...options
-  })
-}
-
-// Generated type
-interface Pet {
-  id: number
-  name: string
-  status: 'available' | 'pending' | 'sold'
-}
-```
-
-## When to Use Nuxt OpenAPI Hyperfetch
-
-### ✅ Perfect For
-
-- Nuxt 3 applications consuming REST APIs
-- Teams that want type-safety without manual type definitions
-- Projects with OpenAPI/Swagger specifications
-- Applications that need SSR-compatible API integration
-- Teams that want standardized API patterns
-
-### ❌ Not Ideal For
-
-- GraphQL APIs (use @nuxtjs/apollo instead)
-- Non-Nuxt Vue applications (no SSR support)
-- Projects without OpenAPI specs (can't generate types)
-- Simple apps with 1-2 endpoints (manual composables might be simpler)
-
-## Next Steps
-
-- [**Getting Started**](/guide/getting-started) - Install and generate your first composables
-- [**Core Concepts**](/guide/core-concepts) - Understand the key concepts
-- [**Composables Reference**](/composables/) - Explore all available composables
+- [Getting Started](/guide/getting-started)
+- [Use as Nuxt Module](/guide/use-as-nuxt-module)
+- [Core Concepts](/guide/core-concepts)

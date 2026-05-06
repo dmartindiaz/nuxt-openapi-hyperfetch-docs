@@ -5,22 +5,18 @@ The `onError` callback is called when the HTTP request fails with a **4xx/5xx st
 ## Signature
 
 ```typescript
-onError?: (error: ApiError) => void | Promise<void>
-
-interface ApiError extends Error {
-  status: number         // HTTP status code (404, 500, etc.)
-  statusText: string     // Status text ("Not Found", "Internal Server Error")
-  data: any             // Error response body
-  url: string           // Request URL
-  message: string       // Error message
-}
+onError?: (error: any) => void | Promise<void>
 ```
+
+The runtime forwards the thrown request error from Nuxt or `$fetch`. In practice that often includes fields such as `status`, `statusText`, `data`, and `message`, but the exact shape depends on the underlying error.
 
 ## Basic Usage
 
 ```typescript
 useFetchGetPetById(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     onError: (error) => {
       console.error('Failed to load pet:', error.message)
@@ -45,7 +41,9 @@ useFetchGetPets({}, {
 
 ```typescript
 useFetchGetPetById(
-  { petId: 123 },
+  {
+    path: { petId: 123 },
+  },
   {
     onError: (error) => {
       switch (error.status) {
@@ -184,7 +182,7 @@ const { execute: submit } = useFetchCreatePet(
 - ✅ Response status is **4xx** (400, 401, 403, 404, 422, etc.)
 - ✅ Response status is **5xx** (500, 502, 503, etc.)
 - ✅ Network error (no internet, CORS, timeout)
-- ✅ Request was aborted
+- ✅ Other thrown request failures
 
 `onError` **does not run** when:
 
@@ -269,14 +267,15 @@ useFetchGetPets({}, {
 ```typescript
 useFetchGetPets({}, {
   onError: (error) => {
-    console.log('Status:', error.status)          // 404
-    console.log('Status Text:', error.statusText) // "Not Found"
-    console.log('URL:', error.url)                // "/api/pets"
-    console.log('Message:', error.message)        // "Not Found"
-    console.log('Data:', error.data)              // Response body
+    console.log('Status:', error.status)
+    console.log('Status Text:', error.statusText)
+    console.log('Message:', error.message)
+    console.log('Data:', error.data)
   }
 })
 ```
+
+Treat these fields as commonly available rather than guaranteed on every transport error.
 
 ## Complex Examples
 

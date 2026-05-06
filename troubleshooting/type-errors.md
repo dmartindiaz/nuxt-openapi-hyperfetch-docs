@@ -1,572 +1,193 @@
 # Type Errors
 
-Solutions for TypeScript compilation and type errors.
+This page covers TypeScript errors caused by wrong imports, wrong parameter shapes, stale generated output, or mismatched OpenAPI contracts.
 
-## Generated Type Errors
+## Type import path is wrong
 
-### Type Not Found
+Import generated API types from `~/openapi` instead.
 
-```typescript
-import type { Pet } from '~/composables/pets'
-// ❌ Cannot find name 'Pet'
+```ts
+import type { GetPetByIdData, Pet } from '~/openapi'
 ```
 
-**Cause:** Types not generated or wrong import path
+If the type is missing there, generation is incomplete or stale.
 
-**Solution:**
+## Generated type cannot be found
 
-```bash
-# 1. Regenerate to ensure types are created
-nxh generate -i swagger.yaml -o ./composables
+When TypeScript cannot find a generated type or composable export, usually one of these is true:
 
-# 2. Check file contains type export
-cat composables/pets.ts | grep "export interface Pet"
+- generation never ran
+- the output directory is stale
+- the app still points to an old path
 
-# 3. Restart TypeScript server in VSCode
-# Ctrl+Shift+P → "TypeScript: Restart TS Server"
+The current default output root is:
+
+```text
+openapi/
 ```
 
-### Circular Type Reference
+If needed, delete `openapi/`, restart Nuxt, and let the module regenerate from the current spec.
 
-```typescript
-export interface Pet {
-  owner: Owner
+## Wrong composable name
+
+Generated names come from `operationId`, not from guessed resource names.
+
+The generated export follows the operationId:
+
+```ts
+useAsyncDataGetPetById({
+  path: { petId: 1 },
+})
+```
+
+## Wrong parameter shape
+
+Generated operations usually expect a structured object, not a primitive argument.
+
+Example:
+
+```ts
+import type { GetPetByIdData } from '~/openapi'
+
+const params: GetPetByIdData = {
+  path: { petId: 1 },
 }
 
-export interface Owner {
-  pets: Pet[]
+const { data } = useAsyncDataGetPetById(params)
+```
+
+If you pass a string or number directly where the generated type expects `path`, `query`, or `body`, TypeScript should fail.
+
+## Missing required field in body or query
+
+The generated input types expose required fields directly.
+
+If TypeScript says a property is missing, fix the request shape rather than suppressing the error.
+
+```ts
+import type { AddPetData } from '~/openapi'
+
+const payload: AddPetData = {
+  body: {
+    name: 'Milo',
+    photoUrls: [],
+  },
 }
-// ❌ Type instantiation is excessively deep
 ```
 
-**Cause:** Circular reference in schema
+## `data` is a ref, not a plain object
 
-**Solution:** Fix OpenAPI spec to break circular reference:
+Generated composables return Vue refs through `useFetch` or `useAsyncData` style APIs.
 
-```yaml
-# ✅ Option 1: Use IDs
-components:
-  schemas:
-    Pet:
-      properties:
-        ownerId:
-          type: number
-    Owner:
-      properties:
-        petIds:
-          type: array
-          items:
-            type: number
+```ts
+const { data } = useAsyncDataGetPetById({
+  path: { petId: 1 },
+})
 
-# ✅ Option 2: Make one optional
-components:
-  schemas:
-    Pet:
-      properties:
-        owner:
-          $ref: '#/components/schemas/Owner'
-    Owner:
-      properties:
-        pets:
-          type: array
-          items:
-            $ref: '#/components/schemas/PetSummary'  # Lighter version
+const pet: Pet | null | undefined = data.value
 ```
 
-### Union Type Not Working
+If you assign `data` directly to `Pet`, the type mismatch is expected.
 
-```typescript
-type Status = 'available' | 'pending' | 'sold'
-const status: Status = pet.status
-// ❌ Type 'string' is not assignable to type 'Status'
-```
+## Nullability error on `data.value`
 
-**Cause:** OpenAPI enum not generating union type
+Strict TypeScript settings are correct here. The request may still be pending or may have failed.
 
-**Solution:** Ensure enum in spec:
+Use one of these patterns:
 
-```yaml
-# ❌ Bad - generates string
-Pet:
-  properties:
-    status:
-      type: string
-
-# ✅ Good - generates union type
-Pet:
-  properties:
-    status:
-      type: string
-      enum:
-        - available
-        - pending
-        - sold
-```
-
-## Composable Type Errors
-
-### Ref Type Mismatch
-
-```vue
-<script setup lang="ts">
-const { data } = useFetchPet(1)
-const pet: Pet = data  // ❌ Type 'Ref<Pet | null>' is not assignable to 'Pet'
-</script>
-```
-
-**Cause:** `data` is a Ref, not direct value
-
-**Solution:**
-
-```vue
-<script setup lang="ts">
-const { data } = useFetchPet(1)
-
-// ✅ Option 1: Use .value
-const pet: Pet | null = data.value
-
-// ✅ Option 2: Use Ref type
-const pet: Ref<Pet | null> = data
-
-// ✅ Option 3: Use in template (auto-unwrapped)
-</script>
-
-<template>
-  <div v-if="data">
-    {{ data.name }}  <!-- ✅ Auto-unwrapped -->
-  </div>
-</template>
-```
-
-### Nullable Type Not Handled
-
-```typescript
-const { data } = useFetchPet(1)
-const name = data.value.name  // ❌ Object is possibly 'null'
-```
-
-**Cause:** TypeScript strict null checks
-
-**Solution:**
-
-```typescript
-// ✅ Option 1: Optional chaining
+```ts
 const name = data.value?.name
 
-// ✅ Option 2: Nullish coalescing
-const name = data.value?.name ?? 'Unknown'
-
-// ✅ Option 3: Type guard
 if (data.value) {
-  const name = data.value.name  // ✅ Narrowed to non-null
-}
-
-// ✅ Option 4: Non-null assertion (if you're sure)
-const name = data.value!.name
-```
-
-### Generic Constraint Error
-
-```typescript
-function processPet<T>(pet: T) {
-  return pet.name  // ❌ Property 'name' does not exist on type 'T'
+  console.log(data.value.name)
 }
 ```
 
-**Cause:** Generic needs constraint
+## Reactive params type is failing
 
-**Solution:**
+Generated composables support `ref` and `computed` params, but the wrapped object still has to match the generated type.
 
-```typescript
-import type { Pet } from '~/composables/pets'
+```ts
+const params = computed<GetPetByIdData>(() => ({
+  path: {
+    petId: Number(route.params.id),
+  },
+}))
 
-// ✅ Add constraint
-function processPet<T extends Pet>(pet: T) {
-  return pet.name  // ✅ TypeScript knows T has name
-}
-
-// ✅ Or use specific type
-function processPet(pet: Pet) {
-  return pet.name
-}
+const { data } = useAsyncDataGetPetById(params)
 ```
 
-## Parameter Type Errors
+If `route.params.id` is a string, convert it explicitly before assigning it to a numeric field.
 
-### Wrong Parameter Type
+## Enum or union type is too broad
 
-```typescript
-const { data } = useFetchPet('1')
-// ❌ Argument of type 'string' is not assignable to parameter 'number'
-```
+If a generated property became `string` instead of a string union, the issue usually comes from the OpenAPI spec.
 
-**Cause:** Parameter type mismatch
-
-**Solution:**
-
-```typescript
-// ❌ Wrong type
-const id = '1'
-useFetchPet(id)
-
-// ✅ Convert to correct type
-const id = '1'
-useFetchPet(Number(id))
-
-// ✅ Or from route params
-const route = useRoute()
-useFetchPet(Number(route.params.id))
-```
-
-### Missing Required Parameter
-
-```typescript
-const { data } = useFetchPet()
-// ❌ Expected 1 argument, but got 0
-```
-
-**Cause:** Required parameter not provided
-
-**Solution:**
-
-```typescript
-// ✅ Provide required parameter
-const { data } = useFetchPet(1)
-
-// ✅ Or use from variable
-const petId = ref(1)
-const { data } = useFetchPet(petId)
-```
-
-### Optional vs Required Confusion
-
-```typescript
-interface PetQuery {
-  limit?: number
-  offset?: number
-  search: string  // Required
-}
-
-const { data } = useFetchPets({
-  limit: 10
-})
-// ❌ Property 'search' is missing
-```
-
-**Cause:** Required field not provided
-
-**Solution:**
-
-```typescript
-// ✅ Provide all required fields
-const { data } = useFetchPets({
-  limit: 10,
-  offset: 0,
-  search: ''  // ✅ Required
-})
-
-// Or fix OpenAPI spec if search should be optional:
-components:
-  schemas:
-    PetQuery:
-      properties:
-        search:
-          type: string
-      required: []  # ✅ Make search optional
-```
-
-## Response Type Errors
-
-### Response Type Too Generic
-
-```typescript
-const { data } = useFetchPet(1)
-// data: Ref<any>
-```
-
-**Cause:** Response schema not defined in OpenAPI
-
-**Solution:** Add response schema:
+For example, this produces a plain string:
 
 ```yaml
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'  # ✅ Add schema
+status:
+  type: string
 ```
 
-### Array Response Not Typed
-
-```typescript
-const { data } = useFetchPets()
-// Need: Pet[]
-// Got: unknown[]
-```
-
-**Cause:** Array items not typed in spec
-
-**Solution:**
+To generate a narrower union, the schema needs an explicit enum.
 
 ```yaml
-paths:
-  /pets:
-    get:
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Pet'  # ✅ Type array items
+status:
+  type: string
+  enum:
+    - available
+    - pending
+    - sold
 ```
 
-### Nested Object Not Typed
+## Circular or excessively deep type errors
 
-```typescript
-const pet = data.value
-const owner = pet.owner  // ❌ Type 'unknown'
-```
+If TypeScript reports excessively deep instantiation, the root cause is usually the schema design.
 
-**Cause:** Nested object not defined
+Common fixes:
 
-**Solution:** Define nested schema:
+- replace recursive object nesting with IDs
+- introduce lighter summary types
+- avoid bidirectional full object graphs in response schemas
 
-```yaml
-components:
-  schemas:
-    Pet:
-      properties:
-        owner:
-          $ref: '#/components/schemas/Owner'  # ✅ Reference type
-    
-    Owner:  # ✅ Define type
-      type: object
-      properties:
-        name:
-          type: string
-```
+This is an API contract problem, not a Nuxt module problem.
 
-## Request Body Type Errors
+## Type errors appear after the spec changed
 
-### Body Type Mismatch
+That usually means the generated output and the app code are out of sync.
 
-```typescript
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  age: '3'  // ❌ Type 'string' is not assignable to type 'number'
-})
-```
+Clear the generated output and regenerate it before changing application code to work around stale types.
 
-**Cause:** Wrong type for property
+## TypeScript server still shows old errors
 
-**Solution:**
+If the generated files are correct on disk but the editor still shows stale diagnostics:
 
-```typescript
-// ✅ Use correct types
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  age: 3  // ✅ number
-})
+1. restart the Nuxt dev process
+2. restart the TypeScript server in the editor
+3. confirm the project extends Nuxt's generated tsconfig
 
-// ✅ Or convert
-const ageStr = '3'
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  age: Number(ageStr)
-})
-```
-
-### Extra Properties Not Allowed
-
-```typescript
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  color: 'orange'  // ❌ Object literal may only specify known properties
-})
-```
-
-**Cause:** TypeScript strict mode doesn't allow extra properties
-
-**Solution:**
-
-```typescript
-// ✅ Option 1: Only use defined properties
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy'
-})
-
-// ✅ Option 2: Add to schema if needed
-// Update OpenAPI spec:
-Pet:
-  properties:
-    name:
-      type: string
-    color:  # ✅ Add property
-      type: string
-
-// ✅ Option 3: Type assertion (not recommended)
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  color: 'orange'
-} as CreatePetRequest)
-```
-
-## Enum Type Errors
-
-### String Literal Type Error
-
-```typescript
-const status = 'available'
-const { data } = useAsyncDataUpdatePet({
-  status  // ❌ Type 'string' is not assignable to type '"available" | "pending"'
-})
-```
-
-**Cause:** TypeScript widens string to type `string`
-
-**Solution:**
-
-```typescript
-// ✅ Option 1: Use const assertion
-const status = 'available' as const
-const { data } = useAsyncDataUpdatePet({ status })
-
-// ✅ Option 2: Type the variable
-const status: 'available' | 'pending' | 'sold' = 'available'
-const { data } = useAsyncDataUpdatePet({ status })
-
-// ✅ Option 3: Inline literal
-const { data } = useAsyncDataUpdatePet({
-  status: 'available'
-})
-```
-
-## Fix Strategies
-
-### 1. Regenerate Types
-
-```bash
-# Clean output directory
-rm -rf ./composables
-
-# Regenerate
-nxh generate -i swagger.yaml -o ./composables
-
-# Restart TypeScript
-# VSCode: Ctrl+Shift+P → "TypeScript: Restart TS Server"
-```
-
-### 2. Check Generated Types
-
-```typescript
-// Open generated file and verify types
-// composables/pets.ts
-
-export interface Pet {
-  id: number
-  name: string
-  status: 'available' | 'pending' | 'sold'
-}
-
-// ✅ Types should match OpenAPI schema
-```
-
-### 3. Use Type Guards
-
-```typescript
-// Create type guard
-function isPet(value: unknown): value is Pet {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'name' in value
-  )
-}
-
-// Use type guard
-const { data } = useFetchPet(1)
-if (data.value && isPet(data.value)) {
-  const pet: Pet = data.value  // ✅ Type narrowed
-}
-```
-
-### 4. Fix OpenAPI Spec
-
-Most type errors come from incomplete OpenAPI spec:
-
-```yaml
-# ✅ Complete type definition
-Pet:
-  type: object
-  required:        # ✅ Specify required fields
-    - id
-    - name
-  properties:
-    id:
-      type: integer
-    name:
-      type: string
-    status:
-      type: string
-      enum:        # ✅ Use enums for literals
-        - available
-        - pending
-        - sold
-    owner:
-      $ref: '#/components/schemas/Owner'  # ✅ Reference types
-```
-
-## TypeScript Config
-
-Ensure proper TypeScript configuration:
+Minimal project config:
 
 ```json
-// tsconfig.json
 {
-  "compilerOptions": {
-    "strict": true,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "moduleResolution": "bundler",
-    "types": ["@nuxt/types"]
-  }
+  "extends": "./.nuxt/tsconfig.json"
 }
 ```
 
-## Debugging Type Errors
+## Checklist
 
-### 1. Hover for Type Info
+When TypeScript errors appear around generated code, verify in this order:
 
-In VSCode, hover over variables to see inferred type
+1. imports come from `~/openapi` or `~/openapi/composables/...`
+2. the composable name matches the real `operationId`
+3. params match the generated `path`, `query`, and `body` structure
+4. `data` is handled as a ref with nullable states
+5. the OpenAPI spec defines enums and nested schemas correctly
+6. stale generated output has been removed before retrying
 
-### 2. Use Type Assertions Temporarily
+## Related pages
 
-```typescript
-// See what TypeScript thinks type is
-const pet = data.value as any
-console.log(typeof pet)
-```
-
-### 3. Check Error Message
-
-```typescript
-// Error message shows what TypeScript expects:
-// Type 'X' is not assignable to type 'Y'
-//      ^^^                             ^^^
-//      What you have                What's expected
-```
-
-## Next Steps
-
-- [Generation Errors →](/troubleshooting/generation-errors)
-- [Build Issues →](/troubleshooting/build-issues)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/)
+- [Build issues](/troubleshooting/build-issues)
+- [Composables issues](/troubleshooting/composables-issues)
+- [Generation errors](/troubleshooting/generation-errors)

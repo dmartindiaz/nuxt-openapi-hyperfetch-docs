@@ -1,357 +1,219 @@
 # useFetch Configuration
 
-Complete reference for configuration options added by the CLI.
+Generated `useFetch` composables accept native Nuxt `useFetch` options plus the extra runtime options documented below.
 
-## Overview
+## Runtime-specific options
 
-The CLI adds **two types of options** to generated composables:
-
-1. **Lifecycle Callbacks** - Execute code at different request stages
-2. **Global Callback Control** - Control when global callbacks apply
-
-::: tip Nuxt Options
-All standard Nuxt `useFetch` options are also available (`immediate`, `watch`, `server`, `lazy`, `transform`, etc.).
-
-See [Nuxt useFetch Documentation](https://nuxt.com/docs/api/composables/use-fetch) for complete list.
-:::
-
-## Options Interface
-
-```typescript
+```ts
 interface ApiRequestOptions<T> {
-  // CLI Options: Lifecycle callbacks
-  onRequest?: (context: OnRequestContext) => void | Promise<void>
+  onRequest?: (context: RequestContext) =>
+    | void
+    | Promise<void>
+    | ModifiedRequestContext
+    | Promise<ModifiedRequestContext>
+
   onSuccess?: (data: T) => void | Promise<void>
-  onError?: (error: ApiError) => void | Promise<void>
-  onFinish?: (context: FinishContext<T>) => void | Promise<void>
-  
-  // CLI Options: Global callback control
-  skipGlobalCallbacks?: boolean
-  skipForUrls?: string[]
-  
-  // Nuxt useFetch options (all available)
-  immediate?: boolean
-  watch?: boolean
-  server?: boolean
-  lazy?: boolean
+  onError?: (error: any) => void | Promise<void>
+  onFinish?: (context: FinishContext<any>) => void | Promise<void>
+
+  skipGlobalCallbacks?: boolean | Array<'onRequest' | 'onSuccess' | 'onError' | 'onFinish'>
+
+  pick?: readonly string[]
   transform?: (data: T) => any
-  // ... see Nuxt docs for complete list
+
+  paginated?: boolean
+  initialPage?: number
+  initialPerPage?: number
+  paginationConfig?: PaginationConfig
+
+  baseURL?: string
+  method?: string
+  body?: any
+  headers?: Record<string, string> | HeadersInit
+  query?: Record<string, any>
+  params?: Record<string, any>
 }
 ```
 
-## Lifecycle Callbacks
+::: tip Nuxt options still apply
+Native options such as `server`, `lazy`, `immediate`, `watch`, `default`, `dedupe`, `onResponse`, and `onResponseError` remain available because the generated wrapper extends `useFetch`.
 
-Execute code at different stages of the request lifecycle.
+[Nuxt useFetch Documentation](https://nuxt.com/docs/api/composables/use-fetch)
+:::
 
-### onRequest
+## `onRequest`
 
-Called **before** the request is sent. Use to modify headers, query params, or log requests.
+Use `onRequest` to modify the outgoing request. Return only the fields you want to override.
 
-```typescript
+```ts
 useFetchGetPets({}, {
-  onRequest: ({ url, method, headers, body, query }) => {
-    // Add custom header
-    headers['X-Request-ID'] = crypto.randomUUID()
-    
-    // Modify query parameters
-    query.timestamp = Date.now()
-    
-    // Log request
-    console.log(`[API] ${method} ${url}`)
-  }
+  onRequest: ({ headers, query }) => ({
+    headers: {
+      ...headers,
+      Authorization: `Bearer ${token.value}`,
+    },
+    query: {
+      ...query,
+      locale: 'en',
+    },
+  }),
 })
 ```
 
-**Context:**
+The request context shape is:
 
-```typescript
-interface OnRequestContext {
+```ts
+interface RequestContext {
   url: string
   method: string
-  headers: Record<string, string>
   body?: any
-  query: Record<string, any>
+  headers?: Record<string, string>
+  query?: Record<string, any>
 }
 ```
 
-**Use cases:**
-- Add authentication tokens
-- Add correlation IDs for tracing
-- Modify query params dynamically
-- Log requests for debugging
-- Add custom headers
+## `onSuccess`, `onError`, `onFinish`
 
-### onSuccess
+These callbacks run after the runtime has applied `pick` and `transform`.
 
-Called when response status is **2xx**. Response data is fully typed from your OpenAPI schema.
-
-```typescript
+```ts
 useFetchCreatePet(
   { body: { name: 'Fluffy' } },
   {
+    immediate: false,
     onSuccess: (pet) => {
-      // 'pet' is typed as Pet from OpenAPI
-      showToast(`Created pet: ${pet.name}`, 'success')
-      navigateTo(`/pets/${pet.id}`)
-    }
-  }
-)
-```
-
-**Context:** `T` (response data, fully typed from OpenAPI)
-
-**Use cases:**
-- Show success messages
-- Navigate to another page
-- Update other state
-- Track analytics
-
-### onError
-
-Called when response status is **4xx/5xx** or network error occurs.
-
-```typescript
-useFetchGetPets({}, {
-  onError: (error) => {
-    // Handle different error types
-    if (error.status === 404) {
-      showToast('Resource not found', 'error')
-    } else if (error.status === 401) {
-      navigateTo('/login')
-    } else if (error.status >= 500) {
-      showToast('Server error, please try again', 'error')
-    } else {
-      showToast(`Error: ${error.message}`, 'error')
-    }
-  }
-})
-```
-
-**Context:**
-
-```typescript
-interface ApiError extends Error {
-  status: number           // HTTP status code
-  statusText: string       // HTTP status text
-  data: any                // Response body (if any)
-  url: string              // Request URL
-}
-```
-
-**Use cases:**
-- Show error messages
-- Redirect on authentication errors
-- Log errors to tracking service
-- Retry failed requests
-- Handle specific error codes
-
-### onFinish
-
-Called **always** after request completes, regardless of success or failure.
-
-```typescript
-const loading = ref(false)
-
-useFetchGetPets({}, {
-  onRequest: () => {
-    loading.value = true
-  },
-  onFinish: ({ success, data, error }) => {
-    loading.value = false
-    console.log('Request complete:', success ? 'success' : 'failed')
-  }
-})
-```
-
-**Context:**
-
-```typescript
-interface FinishContext<T> {
-  success: boolean    // true if success, false if error
-  data: T | null      // Response data (null if error)
-  error: ApiError | null  // Error object (null if success)
-}
-```
-
-**Use cases:**
-- Hide loading spinners
-- Cleanup resources
-- Track request completion
-- Log request duration
-
-## Global Callback Control
-
-Control when global callbacks are applied to requests.
-
-### skipGlobalCallbacks
-
-Skip **all** global callbacks for a specific request:
-
-```typescript
-useFetchGetPublicPets({}, {
-  skipGlobalCallbacks: true
-})
-```
-
-**Use cases:**
-- Skip authentication for public endpoints
-- Skip global error handling for specific requests
-- Prevent global loading indicators
-
-**Example:**
-
-```typescript
-// In plugin: Add auth to all requests
-useGlobalCallbacks({
-  onRequest: ({ headers }) => {
-    headers['Authorization'] = `Bearer ${getToken()}`
-  }
-})
-
-// In component: Skip auth for public endpoint
-useFetchGetPublicPets({}, {
-  skipGlobalCallbacks: true // Don't add auth token
-})
-```
-
-### skipForUrls
-
-Skip global callbacks only for specific URL patterns:
-
-```typescript
-useFetchGetData({}, {
-  skipForUrls: ['/api/public/*', '/health']
-})
-```
-
-**Use cases:**
-- Skip auth for specific URL patterns
-- Skip global callbacks for health checks
-- Fine-grained control over global callbacks
-
-[Learn more about global callbacks →](/composables/features/global-callbacks/overview)
-
-## Complete Example
-
-```vue
-<script setup lang="ts">
-const { data, pending, error, execute } = useFetchGetPets(
-  { status: 'available', limit: 20 },
-  {
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // CLI Options: Lifecycle Callbacks
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    onRequest: ({ url, headers }) => {
-      console.log('Fetching from:', url)
-      headers['X-Request-ID'] = crypto.randomUUID()
-    },
-    onSuccess: (pets) => {
-      showToast(`Loaded ${pets.length} pets`, 'success')
+      console.log('Created', pet.id)
     },
     onError: (error) => {
-      if (error.status === 401) {
-        navigateTo('/login')
-      } else {
-        showToast('Failed to load pets', 'error')
-      }
+      console.error(error)
     },
     onFinish: ({ success }) => {
-      console.log('Request complete:', success)
+      console.log('Completed', success)
     },
-    
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // CLI Options: Global Callback Control
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    skipGlobalCallbacks: false,
-    
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // Nuxt Options (see Nuxt docs)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    immediate: true,
-    watch: true,
-    server: true,
-  }
-)
-</script>
-```
-
-## Common Patterns
-
-### Auth-Protected Request
-
-```typescript
-useFetchGetUserProfile(
-  { userId: currentUser.value.id },
-  {
-    onRequest: ({ headers }) => {
-      const token = useCookie('auth-token').value
-      headers['Authorization'] = `Bearer ${token}`
-    },
-    onError: (error) => {
-      if (error.status === 401) {
-        navigateTo('/login')
-      }
-    },
-    server: false // Nuxt option: only on client
   }
 )
 ```
 
-### Form Submission with Optimistic UI
+`onFinish` receives:
 
-```typescript
-const form = ref({ name: '', email: '' })
-const optimisticUser = ref(null)
-
-const { execute: submit, pending } = useFetchCreateUser(
-  { body: form.value },
-  {
-    immediate: false, // Nuxt option
-    onRequest: () => {
-      // Optimistic update
-      optimisticUser.value = { ...form.value, id: 'temp' }
-    },
-    onSuccess: (user) => {
-      optimisticUser.value = user
-      showToast('User created!', 'success')
-      form.value = { name: '', email: '' }
-    },
-    onError: () => {
-      optimisticUser.value = null
-      showToast('Failed to create user', 'error')
-    }
-  }
-)
+```ts
+interface FinishContext<T> {
+  data?: T
+  error?: any
+  success: boolean
+}
 ```
 
-### Retry on Failure
+## Global callbacks
 
-```typescript
-const maxRetries = 3
-let retryCount = 0
+Global callback rules come from a Nuxt plugin that provides `getGlobalApiCallbacks`.
 
-const { data, execute } = useFetchGetData(
-  {},
-  {
-    immediate: false, // Nuxt option
-    onError: async (error) => {
-      if (error.status >= 500 && retryCount < maxRetries) {
-        retryCount++
-        console.log(`Retry ${retryCount}/${maxRetries}`)
-        await new Promise(r => setTimeout(r, 1000 * retryCount))
-        execute()
-      }
+```ts
+// plugins/api-callbacks.ts
+export default defineNuxtPlugin(() => {
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => [
+        {
+          onRequest: ({ headers }) => ({
+            headers: {
+              ...headers,
+              Authorization: `Bearer ${useCookie('auth-token').value}`,
+            },
+          }),
+        },
+        {
+          methods: ['DELETE'],
+          onSuccess: () => {
+            console.log('Delete succeeded')
+          },
+        },
+      ],
     },
-    onSuccess: () => {
-      retryCount = 0 // Reset on success
-    }
   }
-)
+})
 ```
 
-## Next Steps
+Per request, you can disable all global callbacks or selected stages:
 
-- **Nuxt useFetch**: [Official Documentation](https://nuxt.com/docs/api/composables/use-fetch) - Complete Nuxt options reference
-- **Callbacks**: [Lifecycle Callbacks](/composables/features/callbacks/overview) - Learn more about each callback
-- **Global Callbacks**: [Global Callbacks](/composables/features/global-callbacks/overview) - Set up plugin-based callbacks
-- **Basic Usage**: [Basic Usage Examples](/composables/use-fetch/basic-usage) - See practical examples
+```ts
+useFetchGetPublicPets({}, {
+  skipGlobalCallbacks: true,
+})
+
+useFetchGetPets({}, {
+  skipGlobalCallbacks: ['onRequest', 'onError'],
+})
+```
+
+## Global headers
+
+Global headers are resolved in this order:
+
+1. `useApiHeaders()` if you define that composable in your app
+2. `nuxtApp.$getApiHeaders()` if `useApiHeaders()` is not available
+3. Request-specific headers passed to the composable
+
+```ts
+// composables/useApiHeaders.ts
+export const useApiHeaders = () => {
+  const token = useCookie('auth-token')
+
+  return {
+    ...(token.value ? { Authorization: `Bearer ${token.value}` } : {}),
+  }
+}
+```
+
+## Pagination options
+
+Pagination is shared with `useAsyncData` and is driven by `paginationConfig`.
+
+```ts
+const { data, pagination, nextPage } = useFetchGetPets({}, {
+  paginated: true,
+  initialPage: 2,
+  initialPerPage: 50,
+})
+```
+
+If you need one request to follow a different backend pagination convention, override it inline:
+
+```ts
+useFetchGetPets({}, {
+  paginated: true,
+  paginationConfig: {
+    meta: {
+      metaSource: 'body',
+      fields: {
+        total: 'meta.total',
+        totalPages: 'meta.last_page',
+        currentPage: 'meta.current_page',
+        perPage: 'meta.per_page',
+        dataKey: 'data',
+      },
+    },
+    request: {
+      sendAs: 'query',
+      params: { page: 'page', perPage: 'per_page' },
+      defaults: { page: 1, perPage: 15 },
+    },
+  },
+})
+```
+
+## `baseURL`
+
+If you do not pass `baseURL`, the runtime tries `runtimeConfig.public.apiBaseUrl`.
+
+```ts
+useFetchGetPets({}, {
+  baseURL: 'https://api.example.com',
+})
+```
+
+## Next steps
+
+- [Basic usage](/composables/use-fetch/basic-usage)
+- [Pagination](/composables/use-async-data/pagination)
+- [Global callbacks](/composables/features/global-callbacks/overview)

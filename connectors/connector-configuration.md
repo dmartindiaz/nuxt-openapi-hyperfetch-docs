@@ -1,197 +1,192 @@
 ---
 title: Connector Configuration
-description: Advanced configuration for connectors (manual/hybrid), custom resources, and operation overrides.
+description: Connector activation, strategies, and resource overrides.
 ---
 
 # Connector Configuration
 
-This page documents the real connector configuration supported by the current codebase.
+This page describes the connector configuration supported by the current Nuxt module flow.
 
-## Where You Can Configure It
+## Where to configure it
 
-You can configure connectors in:
+Configure connectors in `nuxt.config.ts` under the `openapi` key.
 
-- `nxh.config.ts` (CLI)
-- `nuxt.config.ts` under `openApiHyperFetch` (Nuxt module)
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-openapi-hyperfetch'],
+  openapi: {
+    input: './swagger.yaml',
+    output: './openapi',
+    generators: ['useAsyncData', 'connectors'],
+    connectors: {
+      strategy: 'hybrid',
+    },
+  },
+})
+```
 
-Both use the same shared config contract.
+## Supported shape
 
-## Supported Shape
+```ts
+type ConnectorsConfig = {
+  enabled?: boolean
+  strategy?: 'manual' | 'hybrid'
+  resources?: Record<
+    string,
+    {
+      operations?: Partial<
+        Record<
+          'getAll' | 'get' | 'create' | 'update' | 'delete',
+          { operationId?: string; path?: string }
+        >
+      >
+    }
+  >
+}
+```
 
-Current connector config supports only these keys:
+For each configured operation:
 
-- `enabled?: boolean`
-- `strategy?: 'manual' | 'hybrid'`
-- `resources?: Record<string, { operations?: Partial<Record<'getAll' | 'get' | 'create' | 'update' | 'delete', { operationId?: string; path?: string }>> }>`
+- `operationId` or `path` is required
+- defining both is invalid
+- defining neither is invalid
 
-Important:
+## When connectors are considered requested
 
-- For each operation, you can define `operationId` or `path`.
-- Defining both is invalid.
-- Defining neither is invalid.
-
-## How Connectors Are Considered "Requested"
-
-Connectors generation is considered requested if any of these is true:
+Connector generation is considered requested when any of these is true:
 
 - `createUseAsyncDataConnectors === true`
 - `generators` includes `'connectors'`
-- `connectors` has meaningful config (`enabled: true`, or `strategy`, or non-empty `resources`)
+- `connectors` has meaningful config such as `enabled`, `strategy`, or non-empty `resources`
 
-When connectors are requested, `useAsyncData` is enforced in the internal generator selection.
+When connectors are requested, the module internally ensures `useAsyncData` generation is present as well.
 
-## Strategy Behavior
+## Strategy behavior
 
 ## `hybrid`
 
-`hybrid` is the default strategy.
+`hybrid` is the default behavior.
 
-Behavior:
+It works like this:
 
-- Start from inferred resources (from OpenAPI analysis).
-- Apply user overrides for matching resources.
-- Add custom resources that do not exist in inferred set.
-- Partial overrides are allowed (for example only `getAll` and `get`).
+- start from inferred resources discovered from the spec
+- apply explicit overrides for matching resources
+- add custom resources that exist only in config
+- keep inferred operations that were not overridden
 
 ## `manual`
 
-Behavior:
+`manual` generates only the resources explicitly declared by the user.
 
-- Generate only resources declared by the user.
-- No automatic inferred resources are included unless explicitly declared.
-- Partial operation definitions are allowed.
+That means:
 
-## Operation Resolution Rules
+- no inferred resources are added automatically
+- partial CRUD definitions are allowed
+- you choose exactly which resource names and operations are emitted
 
-When resolving each configured operation:
+## Operation resolution rules
 
-1. If both `operationId` and `path` are provided, generation fails.
-2. If neither is provided, generation fails.
-3. If `operationId` is provided, it must exist in the OpenAPI operation index.
-4. If `path` is provided, at least one endpoint must exist for that path with compatible HTTP method:
-   - `getAll` -> `GET`
-   - `get` -> `GET`
-   - `create` -> `POST`
-   - `update` -> `PUT` or `PATCH`
-   - `delete` -> `DELETE`
-5. For ambiguous path matches, resolver prioritizes by intent:
-   - `getAll`: prefer endpoint with `list` intent
-   - `get`: prefer endpoint with `detail` intent
-   - `update`: prefer `PUT` over `PATCH`
+During config resolution:
 
-## Real Example: `hybrid` with Petstore Operations
+1. `operationId` and `path` cannot be used together for the same operation.
+2. One of them must be present.
+3. `operationId` must exist in the indexed OpenAPI operations.
+4. `path` must exist and must contain a compatible method for the requested connector operation.
+5. When a path has multiple compatible matches, the resolver prefers the endpoint whose detected intent matches the requested operation.
 
-This example uses real Petstore operationIds (`findPetsByStatus`, `getPetById`, `addPet`, `updatePet`, `deletePet`, `findPetsByTags`).
+Method compatibility is:
 
-```ts
-// nxh.config.ts
-import type { GeneratorConfig } from 'nuxt-openapi-hyperfetch'
+- `getAll` -> `GET`
+- `get` -> `GET`
+- `create` -> `POST`
+- `update` -> `PUT` or `PATCH`
+- `delete` -> `DELETE`
 
-const config: GeneratorConfig = {
-  input: './swagger.yaml',
-  output: './composables/api',
-  generators: ['useAsyncData', 'connectors'],
-  connectors: {
-    strategy: 'hybrid',
-    resources: {
-      pets: {
-        operations: {
-          getAll: { operationId: 'findPetsByStatus' },
-          get: { operationId: 'getPetById' },
-          create: { operationId: 'addPet' },
-          update: { operationId: 'updatePet' },
-          delete: { operationId: 'deletePet' }
-        }
-      },
-      featuredPets: {
-        operations: {
-          getAll: { operationId: 'findPetsByTags' },
-          get: { path: '/pet/{petId}' }
-        }
-      }
-    }
-  }
-}
+For ambiguous matches, resolver preferences are:
 
-export default config
-```
+- `getAll`: prefer endpoints detected as `list`
+- `get`: prefer endpoints detected as `detail`
+- `update`: prefer `PUT` over `PATCH`
 
-What happens:
-
-- `pets` overrides inferred mapping with your explicit operations.
-- `featuredPets` is generated as a custom resource.
-- Any non-overridden operations in existing inferred resources remain as inferred in `hybrid` mode.
-
-## Real Example: `manual` (partial operations)
+## Example: `hybrid`
 
 ```ts
-// nxh.config.ts
-import type { GeneratorConfig } from 'nuxt-openapi-hyperfetch'
-
-const config: GeneratorConfig = {
-  input: './swagger.yaml',
-  output: './composables/api',
-  connectors: {
-    strategy: 'manual',
-    resources: {
-      pets: {
-        operations: {
-          getAll: { operationId: 'findPetsByStatus' },
-          get: { path: '/pet/{petId}' }
-        }
-      }
-    }
-  }
-}
-
-export default config
-```
-
-What happens:
-
-- Only `pets` is generated.
-- Only configured operations are overridden/defined.
-- Partial CRUD is valid.
-
-## Nuxt Module Example (same contract)
-
-```ts
-// nuxt.config.ts
 export default defineNuxtConfig({
   modules: ['nuxt-openapi-hyperfetch'],
-  openApiHyperFetch: {
+  openapi: {
     input: './swagger.yaml',
-    output: './composables/api',
+    output: './openapi',
+    generators: ['useAsyncData', 'connectors'],
     connectors: {
       strategy: 'hybrid',
       resources: {
         pets: {
           operations: {
             getAll: { operationId: 'findPetsByStatus' },
-            get: { operationId: 'getPetById' }
-          }
-        }
-      }
-    }
-  }
+            get: { operationId: 'getPetById' },
+            create: { operationId: 'addPet' },
+            update: { operationId: 'updatePet' },
+            delete: { operationId: 'deletePet' },
+          },
+        },
+        featuredPets: {
+          operations: {
+            getAll: { operationId: 'findPetsByTags' },
+            get: { path: '/pet/{petId}' },
+          },
+        },
+      },
+    },
+  },
 })
 ```
 
-## Backward Compatibility
+In `hybrid` mode:
 
-The legacy switch `createUseAsyncDataConnectors` is still supported.
+- `pets` overrides the inferred mapping for that resource
+- `featuredPets` is added as an extra configured resource
+- non-overridden inferred operations remain available
 
-- If `true`, connectors are generated.
-- If advanced `connectors` config is present, connectors are also generated and that config is passed to the resolver.
+## Example: `manual`
 
-## Validation Errors You Should Expect
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-openapi-hyperfetch'],
+  openapi: {
+    input: './swagger.yaml',
+    output: './openapi',
+    connectors: {
+      strategy: 'manual',
+      resources: {
+        pets: {
+          operations: {
+            getAll: { operationId: 'findPetsByStatus' },
+            get: { path: '/pet/{petId}' },
+          },
+        },
+      },
+    },
+  },
+})
+```
 
-Generation fails with explicit errors when config is invalid, including:
+In `manual` mode:
 
-- both `operationId` and `path` defined for the same operation
-- missing both `operationId` and `path`
+- only `pets` is generated
+- only the configured operations are defined for that resource
+
+## Backward compatibility
+
+The legacy `createUseAsyncDataConnectors` flag still exists and still triggers connector generation.
+
+Use it only as compatibility glue. New configuration should prefer `generators: ['connectors']` and the `connectors` object.
+
+## Validation failures
+
+Connector generation fails before file emission when config is invalid. Common failures are:
+
+- both `operationId` and `path` defined
+- neither `operationId` nor `path` defined
 - unknown `operationId`
 - unknown `path`
-- path exists but has no compatible HTTP method for the configured operation
-
-These checks are enforced during connector resource map resolution before file generation starts.
+- path exists but does not expose a compatible HTTP method

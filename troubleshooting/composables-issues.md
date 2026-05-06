@@ -1,490 +1,243 @@
 # Composables Issues
 
-Solutions for client composable problems.
+This page covers missing exports, bad imports, reactive pitfalls, and callback confusion in the generated client layer.
 
-## Import Errors
+## Composable is missing
 
-### Cannot Find Module
+Most often one of these is true:
 
-```typescript
-Cannot find module '~/composables/pets'
+- the matching generator is not enabled
+- the composable name is based on a different `operationId`
+- the app is importing from an old path
+
+Current generated output lives under `openapi/composables/` by default.
+
+Examples:
+
+```text
+openapi/composables/use-async-data/
+openapi/composables/use-fetch/
+openapi/composables/connectors/
 ```
 
-**Cause:** Generated files not in correct location
+If a folder is missing, verify `openapi.generators` first.
 
-**Solution:**
-
-```bash
-# 1. Check generation output directory
-nxh generate -i swagger.yaml -o ./composables
-
-# 2. Verify file exists
-ls composables/pets.ts
-
-# 3. Restart Nuxt dev server
-npm run dev
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-openapi-hyperfetch'],
+  openapi: {
+    input: './swagger.yaml',
+    generators: ['useFetch', 'useAsyncData'],
+    enableAutoImport: true,
+  },
+})
 ```
 
-### Type Errors on Import
+## Import path is wrong
 
-```typescript
-Module has no exported member 'useFetchPet'
+Use either auto-imported composables, or import from the generated `openapi/` tree.
+
+```ts
+import { useAsyncDataGetPetById } from '~/openapi/composables/use-async-data'
+import type { GetPetByIdData, Pet } from '~/openapi'
 ```
 
-**Cause:** Composable not generated or typo
+If auto-import is enabled, you can call the composable directly without importing it manually.
 
-**Solution:**
+## Export name is different than expected
 
-```typescript
-// ❌ Bad - wrong name
-import { useFetchPet } from '~/composables/pets'
+Composable names are derived from the OpenAPI `operationId`.
 
-// ✅ Good - check actual export name
-// Look in generated file for exact name
-import { useFetchPetById } from '~/composables/pets'
+For example, an operation with `operationId: getPetById` generates names like:
+
+```ts
+useAsyncDataGetPetById
+useAsyncDataGetPetByIdRaw
+useFetchGetPetById
+useFetchGetPetByIdRaw
 ```
 
-## useFetch Issues
+If you expected shorter resource-based names, inspect the actual generated index first.
 
-### Data Always Undefined
+## `useAsyncData` composable does not accept the parameters you passed
 
-```vue
-<script setup lang="ts">
-const { data } = useFetchPet(1)
-// data is always undefined
-</script>
+Generated `useAsyncData` composables do not take a custom fetch handler. They wrap the request for you.
+
+This is wrong for the current generator output:
+
+```ts
+useAsyncDataPets('pets', async () => {
+  return await $fetch('/api/pets')
+})
 ```
 
-**Cause:** API call failing or wrong baseURL
+Use the generated signature instead:
 
-**Solution:**
+```ts
+const params = computed<GetPetByIdData>(() => ({
+  path: {
+    petId: Number(route.params.id),
+  },
+}))
 
-```typescript
-// 1. Check error state
-const { data, error, status } = useFetchPet(1)
-console.log('Error:', error.value)
-console.log('Status:', status.value)
+const { data, error } = useAsyncDataGetPetById(params)
+```
 
-// 2. Configure baseURL in nuxt.config.ts
+Many generated composables also support a custom cache key as the first argument.
+
+```ts
+const { data } = useAsyncDataGetPetById('pet-detail', {
+  path: { petId: 1 },
+})
+```
+
+## Reactive params do not trigger a refresh
+
+Pass a `ref` or `computed`, not a frozen snapshot.
+
+```ts
+const petId = ref(1)
+
+const params = computed<GetPetByIdData>(() => ({
+  path: { petId: petId.value },
+}))
+
+const { data } = useAsyncDataGetPetById(params)
+
+petId.value = 2
+```
+
+If you pass a plain object created once, the request will not react to later state changes.
+
+## Auto-imports do not work
+
+Auto-import depends on both module setup and generation output.
+
+Check all of these:
+
+1. `enableAutoImport` is not `false`
+2. the relevant generator is enabled
+3. generation actually ran for the current command
+4. the app was restarted after a large output layout change
+
+If needed, import from `~/openapi/composables/...` directly to confirm the generated file exists.
+
+## Data is always undefined
+
+When a generated composable returns no data, usually the request itself failed.
+
+Inspect the error state before assuming the composable is broken.
+
+```ts
+const { data, error, status } = useAsyncDataGetPetById({
+  path: { petId: 1 },
+})
+
+console.log(status.value)
+console.log(error.value)
+```
+
+The most common root cause is a missing base URL:
+
+```ts
 export default defineNuxtConfig({
   runtimeConfig: {
     public: {
-      apiBase: 'https://api.example.com'  // ✅ Set correct URL
-    }
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'https://api.example.com',
+    },
+  },
+})
+```
+
+You can also pass `baseURL` per call.
+
+## Global headers are not applied
+
+The runtime looks for global headers in one of these forms:
+
+1. a user composable named `useApiHeaders()`
+2. a Nuxt plugin that provides `$getApiHeaders`
+
+Example composable:
+
+```ts
+export const useApiHeaders = () => () => {
+  const token = useCookie('token')
+
+  return token.value
+    ? { Authorization: `Bearer ${token.value}` }
+    : {}
+}
+```
+
+If your app uses another name, generated requests will not see it automatically.
+
+## Global callbacks are not firing
+
+The runtime reads global callback rules from a Nuxt plugin that provides `getGlobalApiCallbacks`.
+
+```ts
+export default defineNuxtPlugin(() => {
+  const globalCallbacks = [
+    {
+      onError: (error: unknown) => {
+        console.error(error)
+      },
+    },
+  ]
+
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => globalCallbacks,
+    },
   }
 })
+```
 
-// 3. Or provide baseURL in composable
-const { data } = useFetchPet(1, {
-  baseURL: 'https://api.example.com'
+If your plugin provides another property name, the runtime will ignore it.
+
+## Local callback never runs
+
+Check both the local callback and the global callback chain.
+
+- a failing request will skip local success handling
+- a global callback may intentionally stop later execution
+- the operation may be returning an error payload you are not logging yet
+
+Start by logging `error.value` and keeping the local callback minimal.
+
+## SSR output does not match the browser
+
+Hydration issues are usually rendering issues, not generator issues.
+
+Render a stable loading state before using the data.
+
+```vue
+<script setup lang="ts">
+const { data, pending } = useAsyncDataGetPetById({
+  path: { petId: 1 },
 })
-```
-
-### Request Not Reactive
-
-```vue
-<script setup lang="ts">
-const petId = ref(1)
-const { data } = useFetchPet(petId.value)  // ❌ Not reactive
-
-petId.value = 2  // Doesn't refetch
-</script>
-```
-
-**Cause:** Passing `.value` instead of ref
-
-**Solution:**
-
-```vue
-<script setup lang="ts">
-const petId = ref(1)
-const { data } = useFetchPet(petId)  // ✅ Pass ref directly
-
-petId.value = 2  // ✅ Automatically refetches
-</script>
-```
-
-### SSR Hydration Mismatch
-
-```bash
-Hydration children mismatch
-```
-
-**Cause:** Client and server render differently
-
-**Solution:**
-
-```vue
-<script setup lang="ts">
-const { data, pending } = useFetchPet(1)
 </script>
 
 <template>
-  <!-- ❌ Bad - renders differently on server/client -->
-  <div v-if="data">{{ data.name }}</div>
-
-  <!-- ✅ Good - same on both -->
-  <div v-if="!pending && data">{{ data.name }}</div>
-  <div v-else>Loading...</div>
+  <div v-if="pending">Loading...</div>
+  <div v-else-if="data">{{ data.name }}</div>
 </template>
 ```
 
-## useAsyncData Issues
+## Checklist
 
-### Infinite Loop
+When a generated composable looks broken, verify in this order:
 
-```typescript
-const { data } = useAsyncDataPets('pets', async () => {
-  const response = await fetch('/api/pets')
-  return response.json()
-})
-// Infinite fetch loop
-```
+1. the required generator is enabled
+2. generation output exists under `openapi/composables/`
+3. the export name matches the real `operationId`
+4. imports use the generated `openapi/` tree or auto-import
+5. `runtimeConfig.public.apiBaseUrl` is set, or `baseURL` is passed manually
+6. global headers and callbacks use the exact names the runtime reads
 
-**Cause:** Unstable key or dependencies
+## Related pages
 
-**Solution:**
-
-```typescript
-// ✅ Use stable key
-const { data } = useAsyncDataPets('pets', async () => {
-  // Fetch logic
-})
-
-// ✅ Or use reactive key
-const petId = ref(1)
-const { data } = useAsyncDataPet(
-  () => `pet-${petId.value}`,  // ✅ Stable but reactive
-  async () => {
-    // Fetch logic
-  }
-)
-```
-
-### Data Not Updating
-
-```typescript
-const { data, refresh } = useAsyncDataPets('pets')
-
-// Later...
-refresh()  // Doesn't seem to work
-```
-
-**Cause:** Cache not being invalidated
-
-**Solution:**
-
-```typescript
-// ✅ Force refresh
-const { data, refresh } = useAsyncDataPets('pets')
-
-await refresh({
-  _initial: true,
-  dedupe: 'cancel'
-})
-
-// ✅ Or clear cache first
-const nuxtApp = useNuxtApp()
-nuxtApp.payload.data['pets'] = undefined
-await refresh()
-```
-
-## Callbacks Issues
-
-### Callbacks Not Firing
-
-```typescript
-const { data } = useFetchPet(1, {
-  onSuccess: (data) => {
-    console.log('Success')  // ❌ Never logs
-  }
-})
-```
-
-**Cause:** Error in callback or async timing
-
-**Solution:**
-
-```typescript
-// ✅ Check for errors in callback
-const { data } = useFetchPet(1, {
-  onSuccess: (data) => {
-    try {
-      console.log('Success:', data)
-      // Your logic
-    } catch (err) {
-      console.error('Callback error:', err)
-    }
-  },
-  onError: (error) => {
-    console.error('Request failed:', error)
-  }
-})
-```
-
-### Global Callbacks Not Working
-
-```typescript
-// plugins/api.ts
-export default defineNuxtPlugin({
-  setup() {
-    return {
-      provide: {
-        apiCallbacks: {
-          onRequest: () => {
-            console.log('Request')  // ❌ Never logs
-          }
-        }
-      }
-    }
-  }
-})
-```
-
-**Cause:** Wrong plugin structure
-
-**Solution:**
-
-```typescript
-// plugins/api.ts
-export default defineNuxtPlugin((nuxtApp) => {
-  // ✅ Correct structure
-  nuxtApp.provide('apiCallbacks', {
-    onRequest: (url, options) => {
-      console.log('Request to:', url)
-    },
-    onSuccess: (data) => {
-      console.log('Success:', data)
-    }
-  })
-})
-```
-
-## Type Issues
-
-### Type Not Assignable
-
-```typescript
-interface MyPet {
-  name: string
-}
-
-const { data } = useFetchPet(1)
-const pet: MyPet = data.value  // ❌ Type error
-```
-
-**Cause:** Type mismatch or data is nullable
-
-**Solution:**
-
-```typescript
-// ✅ Handle nullable
-const { data } = useFetchPet(1)
-if (data.value) {
-  const pet: Pet = data.value  // ✅ Type guard
-}
-
-// ✅ Or use optional chaining
-const name = data.value?.name
-
-// ✅ Or assert non-null (if you're sure)
-const pet = data.value!
-```
-
-### Generic Type Constraint
-
-```typescript
-function usePet<T>(id: number) {
-  const { data } = useFetchPet(id)
-  return data as T  // ❌ Type error
-}
-```
-
-**Cause:** Type constraint needed
-
-**Solution:**
-
-```typescript
-// ✅ Add constraint
-function usePet<T extends Pet>(id: number) {
-  const { data } = useFetchPet(id)
-  return data as Ref<T | null>
-}
-
-// ✅ Or use generated type
-import type { Pet } from '~/composables/pets'
-
-function usePet(id: number): Ref<Pet | null> {
-  const { data } = useFetchPet(id)
-  return data
-}
-```
-
-## Parameters Issues
-
-### Path Parameters Not Working
-
-```typescript
-const { data } = useFetchPetById()  // ❌ Missing required parameter
-```
-
-**Cause:** Required parameter not provided
-
-**Solution:**
-
-```typescript
-// ✅ Provide all required parameters
-const petId = 1
-const { data } = useFetchPetById(petId)
-```
-
-### Query Parameters Not Applied
-
-```typescript
-const { data } = useFetchPets({
-  limit: 10,
-  offset: 0
-})
-// API called without query params
-```
-
-**Cause:** Wrong parameter location
-
-**Solution:**
-
-```typescript
-// ✅ Check generated signature
-// If generated as separate parameters:
-const { data } = useFetchPets({ 
-  query: {
-    limit: 10,
-    offset: 0
-  }
-})
-
-// Or check if it should be in options:
-const { data } = useFetchPets(undefined, {
-  query: {
-    limit: 10,
-    offset: 0
-  }
-})
-```
-
-### Body Not Sent
-
-```typescript
-const { data } = useAsyncDataCreatePet({
-  name: 'Fluffy',
-  type: 'cat'
-})
-// Body not sent to API
-```
-
-**Cause:** Body should be in separate parameter
-
-**Solution:**
-
-```typescript
-// ✅ Pass body as parameter
-const { data } = useAsyncDataCreatePet(
-  {
-    name: 'Fluffy',
-    type: 'cat'
-  }
-)
-```
-
-## Performance Issues
-
-### Too Many Requests
-
-```vue
-<script setup lang="ts">
-// ❌ Fetches on every render
-const route = useRoute()
-const { data } = useFetchPet(Number(route.params.id))
-</script>
-```
-
-**Cause:** Composable called in reactive context
-
-**Solution:**
-
-```vue
-<script setup lang="ts">
-// ✅ Use computed for reactive params
-const route = useRoute()
-const petId = computed(() => Number(route.params.id))
-const { data } = useFetchPet(petId)
-</script>
-```
-
-### Slow Initial Load
-
-```typescript
-// Multiple serial requests
-const { data: pets } = await useFetchPets()
-const { data: owners } = await useFetchOwners()
-const { data: stores } = await useFetchStores()
-```
-
-**Cause:** Serial requests instead of parallel
-
-**Solution:**
-
-```typescript
-// ✅ Parallel requests
-const [
-  { data: pets },
-  { data: owners },
-  { data: stores }
-] = await Promise.all([
-  useFetchPets(),
-  useFetchOwners(),
-  useFetchStores()
-])
-```
-
-## Debugging
-
-### Enable Request Logging
-
-```typescript
-// plugins/api-logger.ts
-export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.provide('apiCallbacks', {
-    onRequest: (url, options) => {
-      console.log('→', options.method, url)
-    },
-    onSuccess: (data, url) => {
-      console.log('✓', url, data)
-    },
-    onError: (error, url) => {
-      console.error('✗', url, error)
-    }
-  })
-})
-```
-
-### Inspect Network Tab
-
-1. Open DevTools (F12)
-2. Go to Network tab
-3. Filter by "Fetch/XHR"
-4. Check request/response
-
-### Check Nuxt Payload
-
-```vue
-<script setup lang="ts">
-const nuxtApp = useNuxtApp()
-console.log('Payload:', nuxtApp.payload.data)
-</script>
-```
-
-## Next Steps
-
-- [Runtime Errors →](/troubleshooting/runtime-errors)
-- [Type Errors →](/troubleshooting/type-errors)
-- [Composables Guide →](/composables/)
+- [Build issues](/troubleshooting/build-issues)
+- [Runtime errors](/troubleshooting/runtime-errors)
+- [Type errors](/troubleshooting/type-errors)

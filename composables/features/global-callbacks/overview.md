@@ -24,15 +24,23 @@ useFetchGetOwners({}, {
 Define once in a plugin, apply to every request automatically:
 
 ```typescript
-// ✅ plugins/api-callbacks.ts — runs for ALL requests
-const globalCallbacks = {
-  onRequest: ({ headers }) => {
-    const token = useCookie('auth-token').value
-    if (token) {
-      return { headers: { ...headers, 'Authorization': `Bearer ${token}` } }
-    }
+// ✅ plugins/api-callbacks.ts — runs for all matching requests
+export default defineNuxtPlugin(() => {
+  const globalCallbacks = {
+    onRequest: ({ headers }) => {
+      const token = useCookie('auth-token').value
+      if (token) {
+        return { headers: { ...headers, Authorization: `Bearer ${token}` } }
+      }
+    },
   }
-}
+
+  return {
+    provide: {
+      getGlobalApiCallbacks: () => globalCallbacks,
+    },
+  }
+})
 ```
 
 ## The Plugin File
@@ -94,6 +102,8 @@ const globalCallbacks = {
 }
 ```
 
+Global callbacks may be provided as a single rule object or as an array of rules.
+
 ## Multiple Rules
 
 Pass an array of rules instead of a single object to apply different logic to different endpoints. Each rule runs independently — they are not mutually exclusive.
@@ -132,7 +142,7 @@ export default defineNuxtPlugin(() => {
 })
 ```
 
-All rules are evaluated in order. **For `onRequest`**, headers and query from all rules are deep-merged; body is last-write-wins; local modifications take the highest priority.
+All rules are evaluated in order. For `onRequest`, headers and query are merged and later local modifications still take priority.
 
 ## Rule Filters
 

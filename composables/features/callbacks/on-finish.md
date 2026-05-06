@@ -48,7 +48,7 @@ useFetchGetPets({}, {
 - ✅ After successful request (2xx)
 - ✅ After failed request (4xx/5xx)
 - ✅ After network error
-- ✅ After request cancellation
+- ✅ After other thrown request failures
 
 It runs **last** in the callback chain:
 

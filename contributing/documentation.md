@@ -1,374 +1,99 @@
-# Documentation Guide
+# Documentation Standards
 
-Standards for writing and maintaining documentation.
+Documentation in this repository is expected to be source-verified, not aspirational.
 
-## Documentation Types
+## Primary rule
 
-### 1. Code Documentation
+If a docs sentence cannot be justified from the current repository behavior, do not publish it.
 
-- **JSDoc Comments** - Function and class documentation
-- **Inline Comments** - Complex logic explanations
-- **Type Definitions** - TypeScript types and interfaces
+That matters especially in this project because old documentation can easily drift into:
 
-### 2. User Documentation
+- removed CLI workflows
+- old output paths
+- outdated composable names
+- stale config keys
+- roadmap items already completed or abandoned
 
-- **Guide** - Tutorial-style learning content
-- **Reference** - API documentation
-- **Examples** - Code samples and use cases
-- **Troubleshooting** - Common issues and solutions
+## What good docs should do
 
-### 3. Contributor Documentation
+Good docs in this repository should:
 
-- **Contributing Guide** - How to contribute
-- **Architecture** - Design decisions
-- **Development** - Setup and workflow
+- describe the current Nuxt module workflow
+- match the names and defaults in `src/module/`
+- match the generated symbols and paths in `openapi/` when examples depend on output
+- explain tradeoffs without inventing features that do not exist
+- prefer concise examples that still reflect the real API surface
 
-## Writing Style
+## Sources to verify against
 
-### Voice and Tone
+When editing docs, check against the actual source of truth:
 
-- **Clear and Concise** - Get to the point quickly
-- **Active Voice** - "Generate composables" not "Composables are generated"
-- **Second Person** - "You can use..." not "One can use..."
-- **Present Tense** - "useFetch returns..." not "useFetch will return..."
+- `src/module/` for public module options and defaults
+- `src/config/` for generator selection and normalization rules
+- `src/generators/` for generated behavior
+- `openapi/` for checked-in generated names and import paths
+- `package.json` for scripts and supported contributor commands
 
-### Examples
+## Example quality
 
-```markdown
-✅ Good:
-"Generate composables from your OpenAPI specification using the CLI."
+Examples should be realistic and current.
 
-❌ Bad:
-"Composables can be generated from an OpenAPI specification that has been provided by utilizing the command-line interface tool."
+Prefer examples like:
+
+```ts
+import { useAsyncDataGetPetById } from '~/openapi/composables/use-async-data'
+import type { GetPetByIdData } from '~/openapi'
 ```
 
-## Documentation Structure
+Avoid examples that depend on removed paths or legacy naming.
 
-### Page Structure
+## Writing style
 
-Every documentation page should have:
+Use a style that is:
 
-1. **Title** - Clear, descriptive H1
-2. **Introduction** - What this page covers (1-2 paragraphs)
-3. **Main Content** - Organized with H2/H3 headings
-4. **Examples** - Code samples throughout
-5. **Next Steps** - Links to related pages
+- direct
+- specific
+- concise
+- technically falsifiable
 
-### Example Structure
+Prefer:
 
-```markdown
-# Feature Name
+- present tense
+- active voice
+- concrete config names and paths
+- short paragraphs and examples
 
-Brief introduction explaining what this feature does and when to use it.
+## When docs must change with code
 
-## Basic Usage
+Update docs in the same change when you modify:
 
-Simple example showing the most common use case.
+- public config names
+- defaults
+- output paths
+- generated composable naming
+- runtime warnings or fallback behavior
+- connector behavior that users are expected to rely on
 
-\`\`\`typescript
-// Code example
-\`\`\`
+## VitePress page shape
 
-## Advanced Usage
+A good page usually has:
 
-More complex examples showing additional features.
+1. a short statement of what the page covers
+2. the current default behavior
+3. one or two minimal examples
+4. links to related sections
 
-## Options
+## Documentation review checklist
 
-Reference table of available options.
+Before finishing a docs change, check:
 
-## Examples
+1. every command exists in `package.json`
+2. every file path exists in the repo or generated output being documented
+3. every config key matches the current source
+4. examples do not rely on removed CLI-era behavior
+5. troubleshooting guidance points to current module concepts
 
-Real-world usage examples.
+## Related pages
 
-## Next Steps
-
-- [Related Feature →](./related)
-- [Examples →](./examples)
-```
-
-## Code Examples
-
-### Complete and Runnable
-
-```markdown
-✅ Good - complete example:
-\`\`\`vue
-<script setup lang="ts">
-import { useFetchPet } from '~/composables/pets'
-
-const route = useRoute()
-const { data: pet } = useFetchPet(() => Number(route.params.id))
-</script>
-
-<template>
-  <div v-if="pet">
-    <h1>{{ pet.name }}</h1>
-  </div>
-</template>
-\`\`\`
-
-❌ Bad - incomplete:
-\`\`\`typescript
-const { data } = useFetchPet(id)
-\`\`\`
-```
-
-### Language Tags
-
-Always specify language for syntax highlighting:
-
-```markdown
-\`\`\`typescript
-// TypeScript code
-\`\`\`
-
-\`\`\`bash
-# Shell commands
-\`\`\`
-
-\`\`\`yaml
-# YAML configuration
-\`\`\`
-```
-
-### Commented Code
-
-Add comments to explain non-obvious code:
-
-```typescript
-// ✅ Good - explains WHY
-// Retry with exponential backoff to avoid rate limiting
-await retry(fetchData, { 
-  delay: (attempt) => Math.pow(2, attempt) * 1000 
-})
-
-// ❌ Bad - explains WHAT (obvious from code)
-// Call retry function with fetchData
-await retry(fetchData)
-```
-
-## Markdown Conventions
-
-### Headings
-
-```markdown
-# H1 - Page Title (one per page)
-
-## H2 - Major sections
-
-### H3 - Subsections
-
-Don't skip levels (H1 → H3)
-```
-
-### Links
-
-```markdown
-// Internal links - relative paths
-[Getting Started](./getting-started)
-[Composables](/composables/)
-
-// External links - full URLs
-[Nuxt 3 Documentation](https://nuxt.com/docs)
-```
-
-### Lists
-
-```markdown
-// Unordered lists
-- First item
-- Second item
-  - Nested item
-  - Another nested item
-
-// Ordered lists
-1. First step
-2. Second step
-3. Third step
-```
-
-### Tables
-
-```markdown
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| id | `number` | Yes | Pet ID |
-| name | `string` | Yes | Pet name |
-```
-
-### Admonitions
-
-```markdown
-::: tip
-Helpful tips and best practices
-:::
-
-::: warning
-Important warnings
-:::
-
-::: danger
-Critical information or deprecated features
-:::
-```
-
-## API Documentation
-
-### Function Documentation
-
-```typescript
-/**
- * Generate type-safe composables from OpenAPI specification
- * 
- * @param spec - Parsed OpenAPI specification
- * @param options - Generation options
- * @returns Generated file information
- * 
- * @example
- * ```ts
- * const spec = await parseOpenAPI('./swagger.yaml')
- * const files = await generateComposables(spec, {
- *   mode: 'client',
- *   outputDir: './composables'
- * })
- * ```
- */
-export async function generateComposables(
-  spec: ParsedSpec,
-  options: GeneratorOptions
-): Promise<GeneratedFiles> {
-  // Implementation
-}
-```
-
-### Interface Documentation
-
-```typescript
-/**
- * Options for generating composables
- */
-export interface GeneratorOptions {
-  /**
-   * Generation mode
-   * - `client` - Generate useFetch/useAsyncData composables
-   * - `server` - Generate server composables for Nitro routes
-   */
-  mode: 'client' | 'server'
-  
-  /**
-   * Output directory for generated files
-   * @example './composables'
-   */
-  outputDir: string
-  
-  /**
-   * Base URL for API requests (optional)
-   * @example 'https://api.example.com'
-   */
-  baseUrl?: string
-}
-```
-
-## Maintaining Documentation
-
-### When to Update
-
-Update documentation when:
-
-- **Adding Features** - Document new functionality
-- **Changing APIs** - Update affected pages
-- **Fixing Bugs** - Update incorrect information
-- **Deprecating** - Mark as deprecated and provide alternatives
-
-### Documentation Checklist
-
-- [ ] Code examples are correct and tested
-- [ ] Links work and point to correct pages
-- [ ] Spelling and grammar are correct
-- [ ] Formatting is consistent
-- [ ] Screenshots are up to date (if any)
-- [ ] Version information is accurate
-
-### Review Process
-
-1. **Self-Review** - Check your own documentation
-2. **Spell Check** - Run spell checker
-3. **Link Check** - Verify all links work
-4. **Build Check** - Ensure docs build without errors
-5. **Peer Review** - Get feedback from others
-
-## Tools
-
-### Spell Checking
-
-```bash
-# Install
-npm install -g cspell
-
-# Run spell check
-cspell "docs/**/*.md"
-```
-
-### Link Checking
-
-```bash
-# Install
-npm install -g markdown-link-check
-
-# Check links
-markdown-link-check docs/**/*.md
-```
-
-### Build Documentation
-
-```bash
-# Build VitePress docs
-npm run docs:build
-
-# Preview built docs
-npm run docs:preview
-```
-
-## Examples
-
-### Good Documentation Example
-
-```markdown
-# useFetch
-
-Generate a composable that uses Nuxt's `useFetch` for data fetching with SSR support.
-
-## Basic Usage
-
-```typescript
-const { data: pet, pending, error } = useFetchPet(1)
-\`\`\`
-
-The composable automatically:
-- Fetches data on component mount
-- Works with SSR (Server-Side Rendering)
-- Caches results automatically
-
-## Reactive Parameters
-
-Pass refs for reactive fetching:
-
-\`\`\`typescript
-const petId = ref(1)
-const { data: pet } = useFetchPet(petId)
-
-// Automatically refetches when petId changes
-petId.value = 2
-\`\`\`
-
-## See Also
-
-- [useAsyncData →](./useAsyncData) - Alternative with more control
-- [Basic Usage →](/composables/use-fetch/basic-usage)
-```
-
-## Next Steps
-
-- [Pull Request Guidelines →](/contributing/pull-requests)
-- [Code Style →](/contributing/code-style)
+- [Code style](/contributing/code-style)
+- [Testing expectations](/contributing/testing)

@@ -1,112 +1,97 @@
 # Architecture
 
-Understanding the design and architecture of nuxt-openapi-hyperfetch.
+This section describes the current Nuxt-only architecture of `nuxt-openapi-hyperfetch`.
 
 ## Overview
 
-Nuxt OpenAPI Hyperfetch is a CLI tool that generates type-safe Nuxt composables from OpenAPI specifications. It bridges the gap between your API documentation and your frontend code.
+The package is a Nuxt module with `configKey: 'openapi'`. During Nuxt build hooks, it:
 
-## Core Concepts
+1. Resolves the OpenAPI input file
+2. Generates the base SDK with `@hey-api/openapi-ts`
+3. Runs optional wrapper generators on top of that SDK
+4. Registers auto-imports for generated composables when enabled
 
-### Code Generation
+The default output root is `./openapi`.
 
-Generate composables at build time, not runtime:
+## Main layers
 
-- **Static Generation** - All composables generated as TypeScript files
-- **Type Safety** - Full type inference from OpenAPI schemas
-- **Tree Shakeable** - Only import what you use
-- **No Runtime Overhead** - Pure TypeScript, no parser at runtime
+### 1. Module orchestration
 
-### Dual Mode
+The module entry point coordinates the whole generation flow from `src/module/index.ts`.
 
-Support both client and server environments:
+It is responsible for:
 
-- **Client Mode** - Generate `useFetch`/`useAsyncData` composables for Vue components
-- **Server Mode** - Generate server composables for Nitro routes (BFF pattern)
+- reading `openapi` options from `nuxt.config.ts`
+- deciding which generators run
+- wiring dev and production build hooks
+- optionally watching the spec file
+- auto-importing generated composables
 
-### OpenAPI First
+### 2. Base SDK generation
 
-Let your API specification be the source of truth:
+`src/generate.ts` delegates the OpenAPI-to-SDK step to `@hey-api/openapi-ts`.
 
-- **Schema to Types** - OpenAPI schemas → TypeScript interfaces
-- **Operations to Composables** - API operations → Type-safe functions
-- **Documentation to Comments** - OpenAPI descriptions → JSDoc comments
+That produces the base TypeScript client under `openapi/`, including files such as:
 
-## Architecture Sections
+- `index.ts`
+- `sdk.gen.ts`
+- `types.gen.ts`
+- `client.gen.ts`
+- `client/`
+- `core/`
 
-### Design Patterns
+### 3. Wrapper generators
 
-Common patterns used in generated code:
+The module can then add higher-level code on top of the base SDK:
 
-- [Client Composables →](/architecture/patterns/client-composables)
-- [Server Composables →](/architecture/patterns/server-composables)
-- [BFF Pattern →](/architecture/patterns/bff-pattern)
-- [Error Handling →](/architecture/patterns/error-handling)
+- `useFetch`
+- `useAsyncData`
+- `nuxtServer`
+- `connectors`
 
-### Architecture Decisions
+`useFetch` and `useAsyncData` write under `openapi/composables/`.
 
-Key decisions and their rationale:
+`nuxtServer` writes Nitro route files into the configured server route path.
 
-- [ADR 001: useFetch vs useAsyncData →](/architecture/decisions/001-useFetch-vs-useAsyncData)
-- [ADR 002: Callback System →](/architecture/decisions/002-callback-system)
-- [ADR 003: Server Composables →](/architecture/decisions/003-server-composables)
-- [ADR 004: Type Generation →](/architecture/decisions/004-type-generation)
+`connectors` build headless resource-oriented helpers on top of `useAsyncData`.
 
-## System Architecture
+### 4. Shared runtime
 
-```
-┌─────────────────────────────────────────────────┐
-│              OpenAPI Specification              │
-│         (swagger.yaml / openapi.json)           │
-└────────────────┬────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────┐
-│           nuxt-openapi-hyperfetch CLI                    │
-│  ┌──────────────────────────────────────────┐   │
-│  │  Parser (OpenAPI → AST)                  │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 ▼                               │
-│  ┌──────────────────────────────────────────┐   │
-│  │  Type Generator (Schemas → Interfaces)   │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 ▼                               │
-│  ┌──────────────────────────────────────────┐   │
-│  │  Composable Generator (Operations)       │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 ▼                               │
-│  ┌──────────────────────────────────────────┐   │
-│  │  File Writer (TS files)                  │   │
-│  └──────────────────────────────────────────┘   │
-└────────────────┬────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────┐
-│          Generated Composables                  │
-│                                                  │
-│  composables/                                    │
-│  ├── pets/                                       │
-│  │   ├── useFetchPet.ts                         │
-│  │   └── useCreatePet.ts                        │
-│  └── types.ts                                    │
-└────────────────┬────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────┐
-│              Your Nuxt App                      │
-│                                                  │
-│  <script setup>                                  │
-│  const { data } = useFetchPet(1)                │
-│  </script>                                       │
-└─────────────────────────────────────────────────┘
+Both composable families reuse shared runtime helpers for:
+
+- local and global callbacks
+- global headers
+- `pick` and `transform`
+- base URL fallback
+- pagination
+
+## Current flow
+
+```text
+OpenAPI spec
+  -> Nuxt module (openapi config)
+  -> @hey-api/openapi-ts base SDK
+  -> optional wrapper generators
+  -> openapi/ output and optional server route output
+  -> auto-imported composables in the Nuxt app
 ```
 
-## Contributing
+## Optional outputs
 
-Want to contribute? See the [Contributing Guide →](/contributing/).
+Depending on configuration, the architecture can produce:
 
-## Next Steps
+- client composables in `openapi/composables/use-fetch`
+- client composables in `openapi/composables/use-async-data`
+- connector helpers in `openapi/composables/connectors`
+- Nitro routes in the configured `serverRoutePath`
 
-- [Design Patterns →](/architecture/patterns/)
-- [Architecture Decisions →](/architecture/decisions/)
-- [Contributing →](/contributing/)
+## Sections
+
+- [Design patterns](/architecture/patterns/)
+- [Architecture decisions](/architecture/decisions/)
+
+## Related guides
+
+- [Nuxt module usage](/guide/use-as-nuxt-module)
+- [Choosing a generator](/guide/choosing-a-generator)
+- [Composables](/composables/)

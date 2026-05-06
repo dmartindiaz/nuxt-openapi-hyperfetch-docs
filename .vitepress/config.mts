@@ -29,7 +29,6 @@ export default defineConfig({
             { text: 'What is Nuxt OpenAPI Hyperfetch?', link: '/guide/what-is-nuxt-openapi-hyperfetch' },
             { text: 'Getting Started', link: '/guide/getting-started' },
             { text: 'Use as Nuxt Module', link: '/guide/use-as-nuxt-module' },
-            { text: 'Use as CLI', link: '/guide/use-as-cli' },
             { text: 'Core Concepts', link: '/guide/core-concepts' },
           ],
         },
@@ -150,30 +149,28 @@ export default defineConfig({
           text: 'Architecture',
           items: [
             { text: 'Overview', link: '/architecture/' },
-            { text: 'System Overview', link: '/architecture/overview' },
+            { text: 'Design Patterns', link: '/architecture/patterns/' },
+            { text: 'Architecture Decisions', link: '/architecture/decisions/' },
           ],
         },
         {
           text: 'Patterns',
           items: [
-            { text: 'Two-Stage Generation', link: '/architecture/patterns/two-stage-generation' },
-            { text: 'Wrapper Pattern', link: '/architecture/patterns/wrapper-pattern' },
-            { text: 'Shared Code', link: '/architecture/patterns/shared-code' },
-            { text: 'Template-Based', link: '/architecture/patterns/template-based' },
-            { text: 'Copy vs Import', link: '/architecture/patterns/copy-vs-import' },
+            { text: 'Overview', link: '/architecture/patterns/' },
+            { text: 'Client Composables', link: '/architecture/patterns/client-composables' },
+            { text: 'Server Composables', link: '/architecture/patterns/server-composables' },
+            { text: 'BFF Pattern', link: '/architecture/patterns/bff-pattern' },
+            { text: 'Error Handling', link: '/architecture/patterns/error-handling' },
           ],
         },
         {
           text: 'Design Decisions',
           items: [
-            { text: 'ADR-001: ts-morph', link: '/architecture/decisions/adr-001-ts-morph' },
-            { text: 'ADR-002: Copy Runtime', link: '/architecture/decisions/adr-002-copy-runtime' },
-          ],
-        },
-        {
-          text: 'Advanced',
-          items: [
-            { text: 'Data Flow', link: '/architecture/data-flow' },
+            { text: 'Overview', link: '/architecture/decisions/' },
+            { text: 'ADR 001: useFetch vs useAsyncData', link: '/architecture/decisions/001-useFetch-vs-useAsyncData' },
+            { text: 'ADR 002: Callback system', link: '/architecture/decisions/002-callback-system' },
+            { text: 'ADR 003: nuxtServer output', link: '/architecture/decisions/003-server-composables' },
+            { text: 'ADR 004: Base SDK generation', link: '/architecture/decisions/004-type-generation' },
           ],
         },
       ],
@@ -183,24 +180,13 @@ export default defineConfig({
           text: 'Contributing',
           items: [
             { text: 'Overview', link: '/contributing/' },
-            { text: 'Setup', link: '/contributing/setup' },
-            { text: 'Workflow', link: '/contributing/workflow' },
-          ],
-        },
-        {
-          text: 'Adding Features',
-          items: [
-            { text: 'New Callback', link: '/contributing/adding-features/new-callback' },
-            { text: 'New Generator', link: '/contributing/adding-features/new-generator' },
-            { text: 'Parser Feature', link: '/contributing/adding-features/parser-feature' },
-          ],
-        },
-        {
-          text: 'Guides',
-          items: [
-            { text: 'Testing', link: '/contributing/testing' },
-            { text: 'Debugging', link: '/contributing/debugging' },
+            { text: 'Development Setup', link: '/contributing/development' },
             { text: 'Code Style', link: '/contributing/code-style' },
+            { text: 'Testing', link: '/contributing/testing' },
+            { text: 'Documentation', link: '/contributing/documentation' },
+            { text: 'Pull Requests', link: '/contributing/pull-requests' },
+            { text: 'Release Process', link: '/contributing/release-process' },
+            { text: 'Roadmap', link: '/contributing/roadmap' },
           ],
         },
       ],
@@ -210,13 +196,13 @@ export default defineConfig({
           text: 'Troubleshooting',
           items: [
             { text: 'Overview', link: '/troubleshooting/' },
-            { text: 'Installation', link: '/troubleshooting/installation' },
+            { text: 'Build Issues', link: '/troubleshooting/build-issues' },
             { text: 'Generation Errors', link: '/troubleshooting/generation-errors' },
+            { text: 'Composables Issues', link: '/troubleshooting/composables-issues' },
             { text: 'Runtime Errors', link: '/troubleshooting/runtime-errors' },
+            { text: 'Server Issues', link: '/troubleshooting/server-issues' },
             { text: 'Type Errors', link: '/troubleshooting/type-errors' },
-            { text: 'Callback Issues', link: '/troubleshooting/callback-issues' },
             { text: 'Performance', link: '/troubleshooting/performance' },
-            { text: 'OpenAPI Spec', link: '/troubleshooting/openapi-spec' },
           ],
         },
       ],
@@ -232,7 +218,7 @@ export default defineConfig({
     },
 
     editLink: {
-      pattern: 'https://github.com/dmartindiaz/nuxt-openapi-hyperfetch/',
+      pattern: 'https://github.com/dmartindiaz/nuxt-openapi-hyperfetch-docs/edit/main/:path',
       text: 'Edit this page on GitHub',
     },
 

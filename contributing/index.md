@@ -1,124 +1,68 @@
 # Contributing
 
-Thank you for your interest in contributing to nuxt-openapi-hyperfetch!
+This section explains how to contribute to the current Nuxt-only version of `nuxt-openapi-hyperfetch`.
 
-## Ways to Contribute
+## What contributions help most
 
-- **Report Bugs** - Help us identify and fix issues
-- **Suggest Features** - Share ideas for improvements
-- **Improve Documentation** - Fix typos, add examples, clarify content
-- **Submit Pull Requests** - Contribute code
+- fix bugs in generation, runtime helpers, or module wiring
+- improve generated output for `useFetch`, `useAsyncData`, `nuxtServer`, or connectors
+- tighten documentation so it matches the current codebase
+- simplify internal architecture without changing user-facing behavior unexpectedly
 
-## Getting Started
+## Before you start
 
-### Prerequisites
+Contributors should be comfortable with:
 
-- Node.js 18+ and npm
-- Git
-- TypeScript knowledge
-- Familiarity with Nuxt 3 and OpenAPI
+- Node.js 18+
+- TypeScript
+- Nuxt module basics
+- OpenAPI 3.x contracts
 
-### Development Setup
-
-See [Development Guide →](/contributing/development) for detailed setup instructions.
-
-### Quick Start
+Install and validate the repository locally:
 
 ```bash
-# Clone repository
-git clone https://github.com/dmartindiaz/nuxt-openapi-hyperfetch.git
-cd nuxt-openapi-hyperfetch
-
-# Install dependencies
 npm install
-
-# Run tests
-npm test
-
-# Build project
 npm run build
+npm run validate
 ```
 
-## Contribution Workflow
+## Current repository shape
 
-1. **Fork the Repository** - Create your own fork
-2. **Create a Branch** - `git checkout -b feature/my-feature`
-3. **Make Changes** - Follow our code style guidelines
-4. **Write Tests** - Add tests for new features
-5. **Run Tests** - Ensure all tests pass
-6. **Commit Changes** - Use conventional commits
-7. **Push Branch** - `git push origin feature/my-feature`
-8. **Open Pull Request** - Submit PR for review
+The project no longer exposes a contributor-facing CLI workflow. The main product is a Nuxt module that:
 
-## Guidelines
+- generates the base SDK and types into `openapi/`
+- generates optional `useFetch` and `useAsyncData` composables
+- can generate `nuxtServer` Nitro routes
+- can generate headless CRUD connectors
 
-### Code Style
+Useful contributor entry points:
 
-See [Code Style Guide →](/contributing/code-style) for formatting and conventions.
+- `src/generate.ts` builds the base `@hey-api/openapi-ts` output
+- `src/generators/` contains higher-level generators
+- `src/module/` contains Nuxt module setup and options
+- `scripts/dev-generate.ts` is the local development harness for generation work
+- `swagger.yaml` is the local spec used for iteration
+- `openapi/` is the generated output used for smoke testing and docs validation
 
-Key points:
-- Use TypeScript
-- Follow ESLint rules
-- Format with Prettier
-- Write clear comments
+## Recommended contribution flow
 
-### Testing
+1. create a focused branch from the latest `main`
+2. make the smallest coherent change that fixes the issue
+3. regenerate local output if your change affects generated files
+4. run build and validation commands
+5. update docs when public behavior changes
+6. open a pull request with a clear problem statement and test notes
 
-See [Testing Guide →](/contributing/testing) for testing requirements.
+## Quick links
 
-Key points:
-- Write unit tests for new features
-- Ensure all tests pass
-- Maintain code coverage
-- Test edge cases
-
-### Documentation
-
-See [Documentation Guide →](/contributing/documentation) for doc standards.
-
-Key points:
-- Document new features
-- Update API references
-- Add usage examples
-- Keep docs accurate
-
-### Pull Requests
-
-See [Pull Request Guidelines →](/contributing/pull-requests) for PR standards.
-
-Key points:
-- Clear description
-- Link related issues
-- Pass CI checks
-- Respond to reviews
-
-## Code of Conduct
-
-Be respectful and inclusive. We follow the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/).
-
-## Getting Help
-
-- **Issues** - Check existing issues or create new one
-- **Discussions** - Ask questions in GitHub Discussions
-- **Discord** - Join our community Discord server
-
-## Recognition
-
-Contributors are recognized in:
-- README.md contributors section
-- Release notes
-- GitHub contributors page
-
-## Resources
-
-- [Development Setup →](/contributing/development)
-- [Code Style →](/contributing/code-style)
-- [Testing →](/contributing/testing)
-- [Documentation →](/contributing/documentation)
-- [Pull Requests →](/contributing/pull-requests)
-- [Release Process →](/contributing/release-process)
-- [Roadmap →](/contributing/roadmap)
+- [Development setup](/contributing/development)
+- [Code style](/contributing/code-style)
+- [Testing expectations](/contributing/testing)
+- [Documentation standards](/contributing/documentation)
+- [Pull request guide](/contributing/pull-requests)
+- [Release process](/contributing/release-process)
+- [Current priorities](/contributing/roadmap)
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your contributions are licensed under the same Apache-2.0 license used by this repository.

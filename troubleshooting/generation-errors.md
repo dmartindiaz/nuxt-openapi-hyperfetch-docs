@@ -1,466 +1,190 @@
 # Generation Errors
 
-Solutions for OpenAPI parsing and code generation issues.
+This page covers failures while parsing the OpenAPI document or building generated output.
 
-## OpenAPI Parsing Errors
+## The spec is not OpenAPI 3.x
 
-### Invalid OpenAPI Version
+The current module workflow expects an OpenAPI 3 document.
 
-```bash
-Error: Unsupported OpenAPI version: 2.0
-```
+If your source document is still Swagger 2.0, convert it before asking the module to generate output.
 
-**Cause:** Using Swagger 2.0 instead of OpenAPI 3.0
-
-**Solution:**
-
-```bash
-# Convert Swagger 2.0 to OpenAPI 3.0
-npx swagger2openapi swagger.json -o openapi.yaml
-
-# Then generate
-nxh generate -i openapi.yaml
-```
-
-### Missing Required Fields
-
-```bash
-Error: Missing required field: openapi
-```
-
-**Cause:** Invalid OpenAPI specification
-
-**Solution:** Ensure your spec has required fields:
+Typical minimum shape:
 
 ```yaml
-openapi: 3.0.0  # ✅ Required
-info:            # ✅ Required
-  title: My API
-  version: 1.0.0
-paths: {}        # ✅ Required
-```
-
-### Invalid Schema Reference
-
-```bash
-Error: Cannot resolve reference: #/components/schemas/InvalidRef
-```
-
-**Cause:** Referenced schema doesn't exist
-
-**Solution:**
-
-```yaml
-# ❌ Bad - Pet schema doesn't exist
-paths:
-  /pets:
-    get:
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'  # Error: doesn't exist
-
-# ✅ Good - Define the schema
-components:
-  schemas:
-    Pet:
-      type: object
-      properties:
-        name:
-          type: string
-```
-
-### Circular References
-
-```bash
-Error: Circular reference detected: Pet -> Owner -> Pet
-```
-
-**Cause:** Schema references itself
-
-**Solution:** Use `allOf` or break circular reference:
-
-```yaml
-# ✅ Option 1: Break reference
-components:
-  schemas:
-    Pet:
-      type: object
-      properties:
-        name:
-          type: string
-        ownerId:           # ✅ Store ID instead
-          type: number
-    
-    Owner:
-      type: object
-      properties:
-        name:
-          type: string
-        petIds:            # ✅ Store IDs instead
-          type: array
-          items:
-            type: number
-
-# ✅ Option 2: Use allOf (if needed)
-components:
-  schemas:
-    Pet:
-      type: object
-      properties:
-        name:
-          type: string
-        owner:
-          allOf:
-            - $ref: '#/components/schemas/OwnerSummary'
-    
-    OwnerSummary:        # ✅ Limited version
-      type: object
-      properties:
-        id:
-          type: number
-        name:
-          type: string
-```
-
-## Path Parsing Errors
-
-### Missing operationId
-
-```bash
-Warning: Missing operationId for GET /pets, using default: getPets
-```
-
-**Cause:** No operationId defined
-
-**Solution:** Add operationId to each operation:
-
-```yaml
-# ❌ Bad - no operationId
-paths:
-  /pets/{id}:
-    get:
-      summary: Get pet
-
-# ✅ Good - explicit operationId
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById  # ✅ Generates useFetchPetById
-      summary: Get pet by ID
-```
-
-### Invalid Path Parameters
-
-```bash
-Error: Path parameter 'id' not defined in parameters
-```
-
-**Cause:** Path has `{id}` but no parameter definition
-
-**Solution:**
-
-```yaml
-# ❌ Bad - parameter not defined
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById
-
-# ✅ Good - parameter defined
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById
-      parameters:
-        - name: id              # ✅ Must match path param
-          in: path
-          required: true
-          schema:
-            type: number
-```
-
-### Duplicate operationIds
-
-```bash
-Error: Duplicate operationId: getPet
-```
-
-**Cause:** Multiple operations with same operationId
-
-**Solution:** Use unique operationIds:
-
-```yaml
-# ❌ Bad - duplicate
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPet      # ❌ Duplicate
-  /pets/featured:
-    get:
-      operationId: getPet      # ❌ Duplicate
-
-# ✅ Good - unique
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById  # ✅ Unique
-  /pets/featured:
-    get:
-      operationId: getFeaturedPets  # ✅ Unique
-```
-
-## Schema Validation Errors
-
-### Invalid Type
-
-```bash
-Error: Invalid type: unknown
-```
-
-**Cause:** Unsupported type in schema
-
-**Solution:** Use valid OpenAPI types:
-
-```yaml
-# ❌ Bad - invalid types
-Pet:
-  type: object
-  properties:
-    id:
-      type: int        # ❌ Should be 'integer'
-    name:
-      type: text       # ❌ Should be 'string'
-
-# ✅ Good - valid types
-Pet:
-  type: object
-  properties:
-    id:
-      type: integer    # ✅ Valid
-    name:
-      type: string     # ✅ Valid
-```
-
-Valid types: `string`, `number`, `integer`, `boolean`, `array`, `object`
-
-### Missing Response Schema
-
-```bash
-Warning: No response schema for GET /pets
-```
-
-**Cause:** Response has no content schema
-
-**Solution:**
-
-```yaml
-# ❌ Bad - no schema
-paths:
-  /pets:
-    get:
-      responses:
-        '200':
-          description: Success
-
-# ✅ Good - with schema
-paths:
-  /pets:
-    get:
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Pet'
-```
-
-## File System Errors
-
-### Output Directory Errors
-
-```bash
-Error: EACCES: permission denied, mkdir '/generated'
-```
-
-**Cause:** No write permission
-
-**Solution:**
-
-```bash
-# Use directory you have permission to write
-nxh generate -i swagger.yaml -o ./composables
-
-# Or fix permissions
-chmod 755 /path/to/output
-```
-
-### File Already Exists
-
-```bash
-Error: Output directory not empty
-```
-
-**Cause:** Directory contains files
-
-**Solution:**
-
-```bash
-# Clear directory first
-rm -rf ./generated/*
-
-# Or use different directory
-nxh generate -i swagger.yaml -o ./new-composables
-```
-
-## Generation Warnings
-
-### Unused Schemas
-
-```bash
-Warning: Schema 'OldPet' defined but not used
-```
-
-**Cause:** Schema exists but no operation references it
-
-**Solution:** Remove unused schemas or ignore warning:
-
-```yaml
-# Remove if truly unused
-components:
-  schemas:
-    # Pet:  # ✅ Remove if not used
-```
-
-### Deprecated Operations
-
-```bash
-Warning: Operation 'getPet' is deprecated
-```
-
-**Cause:** Operation marked as deprecated in spec
-
-**Solution:**
-
-```yaml
-# Still generates code with deprecation comment
-paths:
-  /pets/{id}:
-    get:
-      operationId: getPetById
-      deprecated: true  # ⚠️ Generates with @deprecated comment
-```
-
-## Validation Tools
-
-### Validate OpenAPI Spec
-
-```bash
-# Using Swagger Editor online
-# https://editor.swagger.io/
-
-# Or use CLI validator
-npx @apidevtools/swagger-cli validate swagger.yaml
-
-# Or use redocly
-npx @redocly/cli lint swagger.yaml
-```
-
-### Check Generated Code
-
-```bash
-# Build TypeScript to check for errors
-npm run build
-
-# Run type checker
-npm run type-check
-```
-
-## Common Fixes
-
-### Fix 1: Ensure Valid OpenAPI 3.0
-
-```yaml
-openapi: 3.0.0  # ✅ Must be 3.0.x
+openapi: 3.0.0
 info:
   title: My API
   version: 1.0.0
 paths: {}
 ```
 
-### Fix 2: Add operationIds
+## `openapi.input` points to the wrong file
 
-```bash
-# Use this pattern:
-# {verb}{Resource}[By{Param}]
+If the configured input path is wrong, generation fails before parsing anything useful.
 
-GET /pets → getPets
-GET /pets/{id} → getPetById
-POST /pets → createPet
-PUT /pets/{id} → updatePet
-DELETE /pets/{id} → deletePet
+```ts
+export default defineNuxtConfig({
+  modules: ['nuxt-openapi-hyperfetch'],
+  openapi: {
+    input: './swagger.yaml',
+  },
+})
 ```
 
-### Fix 3: Define All Schemas
+Check that the file exists relative to the Nuxt project root and that the current build command can read it.
+
+## Missing required top-level fields
+
+The parser expects a valid OpenAPI document with the required top-level keys.
+
+Most common missing fields:
+
+- `openapi`
+- `info`
+- `paths`
+
+If one of those is missing, fix the document before looking at generator code.
+
+## Invalid `$ref`
+
+If a schema or response references a component that does not exist, generation cannot build the type graph.
+
+Example of a valid component reference:
 
 ```yaml
-# Every $ref must have corresponding definition
 components:
   schemas:
-    Pet:  # ✅ Defined
+    Pet:
       type: object
-    Owner:  # ✅ Defined
-      type: object
-```
+      properties:
+        name:
+          type: string
 
-## Debug Tips
-
-### 1. Start Simple
-
-```yaml
-# Minimal valid spec
-openapi: 3.0.0
-info:
-  title: Test
-  version: 1.0.0
 paths:
-  /test:
+  /pets/{id}:
     get:
-      operationId: getTest
+      operationId: getPetById
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/Pet'
 ```
 
-### 2. Add Complexity Gradually
+## Path parameter does not match the path template
 
-1. Start with one endpoint
-2. Add more endpoints
-3. Add schemas
-4. Add parameters
-5. Add request bodies
+Every path segment declared in the URL must have a matching OpenAPI parameter.
 
-### 3. Use Linter
-
-```bash
-# Install OpenAPI linter
-npm install -g @redocly/cli
-
-# Lint your spec
-redocly lint swagger.yaml
+```yaml
+paths:
+  /pets/{petId}:
+    get:
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: integer
 ```
 
-## Next Steps
+If the path uses `{petId}` but the parameter is named something else, generation may fail or produce the wrong input type.
 
-- [Type Errors →](/troubleshooting/type-errors)
-- [Build Issues →](/troubleshooting/build-issues)
-- [OpenAPI 3.0 Spec](https://spec.openapis.org/oas/v3.0.0)
+## Missing or duplicate `operationId`
+
+Generated composable names depend on `operationId`.
+
+Use explicit and unique IDs for every operation.
+
+```yaml
+paths:
+  /pets/{petId}:
+    get:
+      operationId: getPetById
+  /pets/featured:
+    get:
+      operationId: getFeaturedPets
+```
+
+If `operationId` values are duplicated, generated export names will collide.
+
+## Invalid schema types
+
+Use valid OpenAPI schema types such as:
+
+- `string`
+- `number`
+- `integer`
+- `boolean`
+- `array`
+- `object`
+
+If the spec uses ad hoc values or mixed conventions, generation errors are expected.
+
+## Response shape is too vague
+
+Generation is more predictable when responses declare a real content schema.
+
+```yaml
+responses:
+  '200':
+    description: OK
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+```
+
+If the response has no schema, generated output may be incomplete or overly broad.
+
+## Circular references or excessively deep types
+
+Recursive schemas are allowed in some forms, but deeply recursive full-object graphs often produce generation or TypeScript failures.
+
+Common fixes:
+
+- replace nested back-references with IDs
+- introduce summary types
+- avoid full bidirectional object graphs
+
+## File changes are not reflected after fixing the spec
+
+If the OpenAPI document is fixed but generated output still reflects the old state:
+
+1. delete `openapi/`
+2. restart `nuxt dev` or rerun `nuxt build`
+3. confirm the current command is allowed to generate output
+
+If `enableAutoGeneration` is `false`, development changes will not regenerate automatically.
+
+## Generated output is only partially updated
+
+Partial updates usually mean one of these:
+
+- generation stopped at the first parser error
+- the wrong input file is still configured
+- stale files from an older output layout remain on disk
+
+When in doubt, clear the whole generated output directory and regenerate from a known-good spec.
+
+## Checklist
+
+When generation fails, verify in this order:
+
+1. `openapi.input` points to the expected file
+2. the document is OpenAPI 3.x
+3. required top-level fields exist
+4. every `$ref` resolves to a real component
+5. every path parameter matches the path template
+6. each operation has a unique `operationId`
+7. stale generated output has been removed before retrying
+
+## Related pages
+
+- [Build issues](/troubleshooting/build-issues)
+- [Type errors](/troubleshooting/type-errors)
+- [Performance](/troubleshooting/performance)

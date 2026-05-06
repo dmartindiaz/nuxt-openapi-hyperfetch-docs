@@ -83,6 +83,8 @@ const globalCallbacks = {
 }
 ```
 
+Use rule-level `patterns` when the whole rule should be scoped. Use direct `url` checks when only one callback inside the rule needs extra branching.
+
 ### Common Patterns
 
 ```typescript

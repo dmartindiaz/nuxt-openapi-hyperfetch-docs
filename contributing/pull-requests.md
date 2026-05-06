@@ -1,295 +1,113 @@
-# Pull Request Guidelines
+# Pull Requests
 
-Guidelines for submitting pull requests to nuxt-openapi-hyperfetch.
+This page describes the expectations for pull requests against the current repository.
 
-## Before You Start
+## Scope
 
-### Check Existing Work
+Prefer focused pull requests.
 
-- **Search Issues** - Check if issue already exists
-- **Check PRs** - Look for related pull requests
-- **Discuss First** - For large changes, create an issue first
+Good pull requests usually do one of these:
 
-### Fork and Branch
+- fix a single generator or runtime issue
+- add a narrowly scoped feature behind the current module model
+- clean up internal architecture without changing public behavior
+- update docs to match verified source behavior
 
-```bash
-# Fork repository on GitHub
+## Branching
 
-# Clone your fork
-git clone https://github.com/dmartindiaz/nuxt-openapi-hyperfetch.git
+Use a descriptive branch name based on the change:
 
-# Create feature branch
-git checkout -b feature/my-feature
+- `feature/add-connector-option`
+- `fix/use-async-data-cache-key`
+- `docs/rewrite-contributing-guide`
+- `refactor/shared-runtime-cleanup`
 
-# Or bugfix branch
-git checkout -b fix/bug-description
-```
+## Before opening the PR
 
-## Branch Naming
+Run the checks that match your change.
 
-Use descriptive branch names:
-
-- **Features**: `feature/add-typescript-validation`
-- **Bugs**: `fix/handle-missing-schema`
-- **Docs**: `docs/update-contributing-guide`
-- **Chore**: `chore/upgrade-dependencies`
-
-## Making Changes
-
-### Code Quality
-
-- [ ] Follow [Code Style Guide](/contributing/code-style)
-- [ ] Add TypeScript types
-- [ ] Write clear, descriptive comments
-- [ ] Remove commented code
-- [ ] Remove debug console.logs
-
-### Testing
-
-- [ ] Write tests for new features
-- [ ] Update tests for modified features
-- [ ] Ensure all tests pass: `npm test`
-- [ ] Check test coverage: `npm run test:coverage`
-
-### Documentation
-
-- [ ] Update relevant documentation
-- [ ] Add JSDoc comments
-- [ ] Include usage examples
-- [ ] Update CHANGELOG.md
-
-## Commit Messages
-
-### Format
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-### Types
-
-- **feat**: New feature
-- **fix**: Bug fix
-- **docs**: Documentation changes
-- **style**: Code style changes (formatting, etc.)
-- **refactor**: Code refactoring
-- **test**: Adding or updating tests
-- **chore**: Maintenance tasks
-
-### Examples
+Minimum for most code changes:
 
 ```bash
-# Feature
-git commit -m "feat(generator): add support for oneOf schemas"
-
-# Bug fix
-git commit -m "fix(parser): handle missing operationId"
-
-# Documentation
-git commit -m "docs(guide): add server composables examples"
-
-# Breaking change
-git commit -m "feat(cli): change default output directory
-
-BREAKING CHANGE: default output is now ./generated instead of ./composables"
+npm run build
+npm run validate
 ```
 
-## Pull Request Process
+If generation behavior changed, also regenerate the affected output and inspect `openapi/`.
 
-### 1. Create PR
+## What reviewers need to see
 
-**Title Format:**
-```
-<type>: <description>
+A good pull request description should answer four things clearly:
+
+1. what problem exists today
+2. what changed in the implementation
+3. how you validated the change
+4. whether any docs or generated output changed intentionally
+
+## Commit messages
+
+Use direct, descriptive commit messages.
 
 Examples:
-feat: add support for OpenAPI 3.1
-fix: handle empty response schemas
-docs: update installation guide
-```
-
-**Description Template:**
-
-```markdown
-## Description
-Brief description of what this PR does.
-
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-
-## Related Issues
-Fixes #123
-Related to #456
-
-## Changes Made
-- Added X feature
-- Fixed Y bug
-- Updated Z documentation
-
-## Testing
-- [ ] Tests added/updated
-- [ ] All tests passing
-- [ ] Manual testing performed
-
-## Screenshots (if applicable)
-Add screenshots for UI changes
-
-## Checklist
-- [ ] Code follows style guidelines
-- [ ] Self-reviewed code
-- [ ] Commented complex code
-- [ ] Documentation updated
-- [ ] No new warnings
-- [ ] Tests added
-- [ ] All tests passing
-```
-
-### 2. CI Checks
-
-Your PR must pass all CI checks:
-
-- ✅ **Linting** - ESLint passes
-- ✅ **Type Checking** - TypeScript compiles
-- ✅ **Tests** - All tests pass
-- ✅ **Build** - Project builds successfully
-- ✅ **Coverage** - Coverage targets met
-
-### 3. Code Review
-
-**Responding to Reviews:**
-
-- Address all comments
-- Don't take feedback personally
-- Ask questions if unclear
-- Update code based on feedback
-- Mark conversations as resolved
-
-**Making Changes:**
 
 ```bash
-# Make requested changes
-git add .
-git commit -m "fix: address review comments"
-git push origin feature/my-feature
+git commit -m "fix: preserve baseURL fallback in async data runtime"
+git commit -m "docs: rewrite contributing section for Nuxt-only workflow"
+git commit -m "refactor: simplify generator option normalization"
 ```
 
-### 4. Merge
+Conventional Commit style is welcome, but the important part is clarity.
 
-Once approved:
+## Review checklist
 
-- PR will be merged by maintainer
-- Branch will be deleted automatically
-- You'll be added to contributors
+Before requesting review, make sure:
 
-## PR Size
+- the change is scoped and readable
+- generated output was refreshed when needed
+- docs were updated when public behavior changed
+- no stale references to removed CLI-era behavior were introduced
+- build and validation commands pass locally
 
-### Keep PRs Small
+## Common reasons for review feedback
 
-- **Focused** - One feature/fix per PR
-- **Reviewable** - < 500 lines changed preferred
-- **Logical** - Cohesive set of changes
+- docs describe behavior that the current source does not implement
+- generated code changed but the source explanation is missing
+- a fix patches generated output instead of fixing the generator or shared runtime
+- a public option or path was renamed without updating docs and examples
+- unrelated refactors were mixed into a functional fix
 
-### Large Changes
+## Large changes
 
-If change is large:
+If the change is big, split it into a small sequence of reviewable pull requests whenever possible.
 
-1. **Split into Multiple PRs** - Create series of smaller PRs
-2. **Create Draft PR** - Get early feedback
-3. **Document Plan** - Explain approach in issue first
+Good split examples:
 
-## Examples
+- source migration first, docs rewrite second
+- config normalization first, generator output updates second
+- runtime fix first, connector follow-up second
 
-### Good PR Example
+## Responding to review
 
-```markdown
-feat: add support for callbacks in generated composables
+When feedback arrives:
 
-## Description
-Adds `onRequest`, `onSuccess`, `onError`, and `onFinish` callbacks to generated composables.
+- address the requested change directly
+- explain tradeoffs when you disagree
+- keep follow-up commits focused on the review topic
+- update docs if the review changed user-facing behavior
 
-## Type of Change
-- [x] New feature
+## What to include when manual testing was required
 
-## Related Issues
-Fixes #234
-Related to #189
+If you used a local Nuxt sandbox or other manual verification, say so explicitly in the PR description.
 
-## Changes Made
-- Added callback interfaces to types
-- Updated composable generator to include callbacks
-- Added tests for callback execution
-- Updated documentation with callback examples
+A short note is enough:
 
-## Testing
-- [x] Unit tests added for callback system
-- [x] Integration tests updated
-- [x] Manual testing in example project
-
-## Breaking Changes
-None - this is a backward-compatible addition.
+```md
+Validated with `npm run dev:generate:all` and a local Nuxt sandbox.
+Confirmed auto-imports, `apiBaseUrl` fallback, and regenerated `openapi/` output.
 ```
 
-### Good Commit History
+## Related pages
 
-```bash
-feat: add callback interfaces
-feat: generate callback code in composables
-test: add callback execution tests
-docs: add callback examples to guide
-```
-
-## Review Timeline
-
-- **Initial Review** - Within 48 hours
-- **Follow-up** - Within 24 hours of updates
-- **Merge** - After approval and passing CI
-
-## Getting Help
-
-If you need help with your PR:
-
-- **Comment on PR** - Ask questions in PR comments
-- **Tag Maintainer** - `@maintainer` in comments
-- **Discord** - Ask in #contributors channel
-- **Issue** - Create separate issue for discussion
-
-## After Merge
-
-### Update Local Fork
-
-```bash
-# Switch to main
-git checkout main
-
-# Fetch upstream
-git fetch upstream
-
-# Merge upstream main
-git merge upstream/main
-
-# Push to your fork
-git push origin main
-
-# Delete feature branch
-git branch -d feature/my-feature
-git push origin --delete feature/my-feature
-```
-
-### Celebrate
-
-Your contribution is now part of nuxt-openapi-hyperfetch! Thank you! 🎉
-
-## Next Steps
-
-- [Code Style →](/contributing/code-style)
-- [Testing →](/contributing/testing)
-- [Documentation →](/contributing/documentation)
+- [Development setup](/contributing/development)
+- [Testing expectations](/contributing/testing)
+- [Documentation standards](/contributing/documentation)

@@ -2,203 +2,64 @@
 
 **Status:** Accepted
 
-**Date:** 2024-01-20
+**Date:** 2026-05-06
 
 ## Context
 
-Generated composables need a way for users to execute custom logic at different stages of the request lifecycle (before request, after success, on error, after completion).
+Generated composables need extensibility for request lifecycle behavior without forcing every app to fork generated code.
 
-## Requirements
+The runtime must support:
 
-1. **Per-Request Callbacks** - Component-specific logic
-2. **Global Callbacks** - App-wide logic (auth, analytics, errors)
-3. **Skip Mechanism** - Ability to bypass global callbacks
-4. **Type Safety** - Typed callback parameters
-5. **Composability** - Multiple callbacks can run
+- per-request behavior
+- app-wide behavior
+- selective opt-out
+- deterministic execution order
 
 ## Decision
 
-**Implement a two-tier callback system: per-request callbacks in options and global callbacks via Nuxt plugin.**
+Use a shared two-tier callback system:
 
-### Per-Request Callbacks
+- local callbacks passed in composable options
+- global callback rules provided by a Nuxt plugin through `$getGlobalApiCallbacks`
 
-```typescript
-const { execute } = useCreatePet({
-  onRequest: (ctx) => console.log('Starting...'),
-  onSuccess: (data) => navigateTo('/pets'),
-  onError: (error) => toast.error(error.message),
-  onFinish: ({ success }) => console.log('Done:', success)
-})
-```
+Global callbacks can be a single rule or an array of rules.
 
-### Global Callbacks
+## Runtime model
 
-```typescript
-// plugins/api.ts
-export default defineNuxtPlugin(() => ({
-  provide: {
-    apiCallbacks: {
-      onRequest: (ctx) => { /* global logic */ },
-      onSuccess: (data, ctx) => { /* global logic */ },
-      onError: (error, ctx) => { /* global logic */ },
-      onFinish: (ctx) => { /* global logic */ }
-    }
-  }
-}))
-```
+Supported lifecycle stages:
 
-### Skip Flags
+- `onRequest`
+- `onSuccess`
+- `onError`
+- `onFinish`
 
-```typescript
-const { execute } = useFetchPet(1, {
-  skipGlobalError: true // Handle error locally
-})
-```
+Supported control features:
 
-## Implementation
+- `skipGlobalCallbacks: true`
+- `skipGlobalCallbacks: ['onError']`
+- `patterns` and `methods` filters on global rules
+- `return false` from a matching global callback to suppress the corresponding local callback
 
-### Callback Execution Order
+## Rationale
 
-```
-1. Global onRequest
-2. Per-Request onRequest
-3. HTTP Request
-4a. Success Path:
-    - Global onSuccess
-    - Per-Request onSuccess
-5a. Error Path:
-    - Global onError (if not skipped)
-    - Per-Request onError
-6. Global onFinish
-7. Per-Request onFinish
-```
-
-### Generated Code
-
-```typescript
-export function useFetchPet(
-  id: MaybeRef<number>,
-  options?: UseFetchOptions<Pet>
-) {
-  const nuxtApp = useNuxtApp()
-  const globalCallbacks = nuxtApp.$apiCallbacks
-  
-  return useFetch<Pet>(
-    () => `/pets/${unref(id)}`,
-    {
-      ...options,
-      onRequest: (ctx) => {
-        globalCallbacks?.onRequest?.(ctx)
-        options?.onRequest?.(ctx)
-      },
-      onSuccess: (data, ctx) => {
-        if (!options?.skipGlobalSuccess) {
-          globalCallbacks?.onSuccess?.(data, ctx)
-        }
-        options?.onSuccess?.(data, ctx)
-      },
-      onError: (error, ctx) => {
-        if (!options?.skipGlobalError) {
-          globalCallbacks?.onError?.(error, ctx)
-        }
-        options?.onError?.(error, ctx)
-      },
-      onFinish: (ctx) => {
-        if (!options?.skipGlobalFinish) {
-          globalCallbacks?.onFinish?.(ctx)
-        }
-        options?.onFinish?.(ctx)
-      }
-    }
-  )
-}
-```
+- local callbacks keep component-specific logic close to the call site
+- global rules centralize auth, telemetry, and shared error handling
+- filters prevent global behavior from becoming all-or-nothing
 
 ## Consequences
 
 ### Positive
 
-- **Flexible** - Works for both local and global use cases
-- **Composable** - Multiple callbacks can execute
-- **Type Safe** - All callbacks are typed
-- **Opt-Out** - Skip flags provide escape hatch
-- **Separation of Concerns** - Local vs global logic separated
+- the same callback model works across `useFetch` and `useAsyncData`
+- apps get a clear plugin integration point for shared behavior
+- one-off exceptions stay local through `skipGlobalCallbacks`
 
 ### Negative
 
-- **Complexity** - More code in generated composables
-- **Bundle Size** - Callback handling adds bytes
-- **Learning Curve** - Users need to understand both tiers
-- **Execution Order** - Must document callback order
+- runtime behavior is more complex than plain Nuxt wrappers
+- callback ordering must be documented clearly
 
-## Alternatives Considered
+## Related guides
 
-### Alternative 1: Only Per-Request Callbacks
-
-**Rejected** - Requires duplicating global logic (auth, analytics) in every component
-
-### Alternative 2: Only Global Callbacks
-
-**Rejected** - No way to add component-specific logic
-
-### Alternative 3: Event Bus
-
-**Rejected** - Less type-safe, harder to debug, loose coupling issues
-
-### Alternative 4: Interceptors (axios-style)
-
-**Rejected** - More complex, not idiomatic for Nuxt composables
-
-## Use Cases
-
-### Authentication
-
-```typescript
-// plugins/auth.ts
-globalCallbacks.onRequest = (ctx) => {
-  const token = useCookie('auth_token')
-  if (token.value) {
-    ctx.headers.Authorization = `Bearer ${token.value}`
-  }
-}
-
-globalCallbacks.onError = (error) => {
-  if (error.statusCode === 401) {
-    navigateTo('/login')
-  }
-}
-```
-
-### Analytics
-
-```typescript
-// plugins/analytics.ts
-globalCallbacks.onRequest = (ctx) => {
-  gtag('event', 'api_request', { url: ctx.url })
-}
-
-globalCallbacks.onError = (error, ctx) => {
-  gtag('event', 'api_error', { url: ctx.url, status: error.statusCode })
-}
-```
-
-### Loading State
-
-```typescript
-// plugins/loading.ts
-const loading = useState('global-loading', () => false)
-
-globalCallbacks.onRequest = () => {
-  loading.value = true
-}
-
-globalCallbacks.onFinish = () => {
-  loading.value = false
-}
-```
-
-## Related
-
-- [Callbacks Documentation](/composables/features/callbacks/overview)
-- [Global Callbacks Guide](/composables/features/global-callbacks/overview)
-- [Skip Patterns →](/composables/features/global-callbacks/patterns)
+- [Callbacks overview](/composables/features/callbacks/overview)
+- [Global callbacks](/composables/features/global-callbacks/overview)
